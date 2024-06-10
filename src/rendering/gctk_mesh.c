@@ -1,0 +1,63 @@
+#include "gctk/rendering/mesh.h"
+
+#include "gctk/debug.h"
+
+bool GctkCreateMesh(Mesh* mesh, const float* buffer, size_t buffer_size, GLsizei vertex_count) {
+	return GctkCreateMeshWithIndex(mesh, buffer, buffer_size, NULL, 0, vertex_count);
+}
+
+bool GctkCreateMeshWithIndex(Mesh* mesh, const float* buffer, size_t buffer_size, const GLuint* indices,
+							 size_t index_count, GLsizei vertex_count) {
+	GLuint vbo, vao, ebo;
+
+	GctkGLCall(glGenVertexArrays(1, &vao));
+	if (vao == 0) {
+		GctkGLCall(glDeleteBuffers(1, &vbo));
+		GctkGLCall(GctkLogError(GCTK_ERROR_GL_RUNTIME, "Failed to generate vao"));
+		return false;
+	}
+	GctkGLCall(glBindVertexArray(vao));
+
+	GctkGLCall(glGenBuffers(1, &vbo));
+	if (vbo == 0) {
+		GctkLogError(GCTK_ERROR_GL_RUNTIME, "Failed to generate vbo");
+		return false;
+	}
+
+	GctkGLCall(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+	GctkGLCall(glBufferData(GL_ARRAY_BUFFER, (GLsizei)buffer_size, buffer, GL_STATIC_DRAW));
+
+	if (indices == NULL || index_count == 0) {
+		ebo = 0;
+	} else {
+		GctkGLCall(glGenBuffers(1, &ebo));
+		if (ebo == 0) {
+			GctkGLCall(glDeleteVertexArrays(1, &vao));
+			GctkGLCall(glDeleteBuffers(1, &vbo));
+			GctkLogError(GCTK_ERROR_GL_RUNTIME, "Failed to generate ebo");
+			return false;
+		}
+
+		GctkGLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo));
+		GctkGLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizei)index_count, indices, GL_STATIC_DRAW));
+	}
+
+	GctkGLCall(glEnableVertexAttribArray(0));
+	GctkGLCall(glEnableVertexAttribArray(1));
+	GctkGLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
+	GctkGLCall(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
+
+	*mesh = (Mesh){ .vao = vao, .vbo = vbo, .ebo = ebo, .vertex_count = vertex_count };
+	return true;
+}
+
+void GctkDrawMesh(const Mesh* mesh) {
+	if (mesh != NULL) {
+		GctkGLCall(glBindVertexArray(mesh->vao));
+		if (mesh->ebo != 0) {
+			GctkGLCall(glDrawElements(GL_TRIANGLES, mesh->vertex_count, GL_UNSIGNED_INT, 0));
+		} else {
+			GctkGLCall(glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count));
+		}
+	}
+}
