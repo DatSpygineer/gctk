@@ -10,8 +10,9 @@ This project is in a very early stage, it is not feature complete and breaking u
 ## Features:
 
 * ✔️ Basic 2D/3D mesh rendering
-* ❌ Rendering of 2D sprites
+* ✔️ Rendering of 2D sprites
 * ❌ Tilemap rendering
 * ❌ Sprite batching
+* ❌ ECS
 * ❌ Fully featured lua bindings
 * ❌ Editor application
