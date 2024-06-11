@@ -229,7 +229,7 @@ GCTK_API Mat4 Mat4CreatePerspective(float fov, float width, float height, float 
 
 #define QUAT_IDENTITY QUAT(0.0f, 0.0f, 0.0f, 1.0f)
 
-#define MAT4_IDENTITY MAT4_COLUMNS(VEC4_UNIT_X, VEC4_UNIT_Y, VEC4_UNIT_Z, VEC4_UNIT_Z)
+#define MAT4_IDENTITY MAT4_COLUMNS(VEC4_UNIT_X, VEC4_UNIT_Y, VEC4_UNIT_Z, VEC4_UNIT_W)
 
 typedef struct Transform2D Transform2D;
 

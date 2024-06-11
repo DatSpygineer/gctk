@@ -12,14 +12,15 @@ bool GctkCreateMeshWithIndex(Mesh* mesh, const float* buffer, size_t buffer_size
 
 	GctkGLCall(glGenVertexArrays(1, &vao));
 	if (vao == 0) {
-		GctkGLCall(glDeleteBuffers(1, &vbo));
 		GctkGLCall(GctkLogError(GCTK_ERROR_GL_RUNTIME, "Failed to generate vao"));
 		return false;
 	}
+
 	GctkGLCall(glBindVertexArray(vao));
 
 	GctkGLCall(glGenBuffers(1, &vbo));
 	if (vbo == 0) {
+		GctkGLCall(glDeleteVertexArrays(1, &vao));
 		GctkLogError(GCTK_ERROR_GL_RUNTIME, "Failed to generate vbo");
 		return false;
 	}
@@ -52,12 +53,27 @@ bool GctkCreateMeshWithIndex(Mesh* mesh, const float* buffer, size_t buffer_size
 }
 
 void GctkDrawMesh(const Mesh* mesh) {
-	if (mesh != NULL) {
+	if (mesh != NULL && mesh->vao != 0) {
 		GctkGLCall(glBindVertexArray(mesh->vao));
 		if (mesh->ebo != 0) {
 			GctkGLCall(glDrawElements(GL_TRIANGLES, mesh->vertex_count, GL_UNSIGNED_INT, 0));
 		} else {
 			GctkGLCall(glDrawArrays(GL_TRIANGLES, 0, mesh->vertex_count));
 		}
+	}
+}
+
+void GctkDeleteMesh(Mesh* mesh) {
+	if (mesh) {
+		if (mesh->vao) {
+			glDeleteVertexArrays(1, &mesh->vao);
+		}
+		if (mesh->vbo) {
+			glDeleteBuffers(1, &mesh->vbo);
+		}
+		if (mesh->ebo) {
+			glDeleteBuffers(1, &mesh->ebo);
+		}
+		memset(mesh, 0, sizeof(Mesh));
 	}
 }

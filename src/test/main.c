@@ -29,22 +29,33 @@ static Shader SHADER;
 static Texture TEXTURE;
 
 static float VERTS[] = {
-	-0.5f,  0.5f, 0.0f,	1.0f, 0.0f,
-	 0.5f,  0.5f, 0.0f,	0.0f, 0.0f,
-	 0.5f, -0.5f, 0.0f,	0.0f, 1.0f,
-	 0.5f, -0.5f, 0.0f,	0.0f, 1.0f,
-	-0.5f, -0.5f, 0.0f,	1.0f, 1.0f,
-	-0.5f,  0.5f, 0.0f,	1.0f, 0.0f
+	-0.5f,  0.5f, 0.0f,	0.0f, 0.0f,
+	 0.5f,  0.5f, 0.0f,	1.0f, 0.0f,
+	 0.5f, -0.5f, 0.0f,	1.0f, 1.0f,
+	 0.5f, -0.5f, 0.0f,	1.0f, 1.0f,
+	-0.5f, -0.5f, 0.0f,	0.0f, 1.0f,
+	-0.5f,  0.5f, 0.0f,	0.0f, 0.0f
 };
 
 static Mesh MESH;
+static Transform2D TRANSFORM = { .position = VEC2(200, 200), .scale = VEC2(100, 100) };
+static Sprite SPRITE;
 
 static void render(double delta) {
-	GctkBindTexture(&TEXTURE);
-	GctkApplyShader(&SHADER);
-	GctkSetShaderUniformTexture(&SHADER, "TEXTURE", &TEXTURE);
-
-	GctkDrawMesh(&MESH);
+	Transform2DUpdateMatrix(&TRANSFORM);
+//	GctkUpdateViewportUpdateCurrent();
+//
+//	Mat4 mat = MAT4_IDENTITY;
+//
+//	GctkBindTexture(&TEXTURE);
+//	GctkApplyShader(&SHADER);
+//	GctkSetShaderUniformMat4(&SHADER, "TRANSFORM_MATRIX", TRANSFORM.matrix);
+//	GctkSetShaderUniformMat4(&SHADER, "VIEW_MATRIX", GctkGetViewportMatrix());
+//	GctkSetShaderUniformColor(&SHADER, "COLOR_TINT", COLOR(1.0f, 1.0f, 1.0f, 1.0f));
+//	GctkSetShaderUniformTexture(&SHADER, "TEXTURE", &TEXTURE);
+//
+//	GctkDrawMesh(&MESH);
+	GctkSpriteDraw(&SPRITE, COLOR(1.0f, 1.0f, 1.0f, 1.0f), &TRANSFORM);
 }
 
 int main(int argc, char** argv) {
@@ -56,14 +67,17 @@ int main(int argc, char** argv) {
 
 	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE, "test.png", GCTK_IMAGE_POINT_FILTER),
 					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
-	GctkAssertFatal(GctkCompileShader(&SHADER, VERT_SHADER, FRAG_SHADER),
-					GCTK_ERROR_GL_RUNTIME, "Failed to create shader");
 	GctkAssertFatal(GctkCreateMesh(&MESH, VERTS, sizeof(VERTS), 6),
 					GCTK_ERROR_GL_RUNTIME, "Failed to create mesh");
+//	GctkAssertFatal(GctkCompileShader(&SHADER, VERT_SHADER, FRAG_SHADER),
+//					GCTK_ERROR_GL_RUNTIME, "Failed to compile shader!");
+	SHADER = *GctkSprite2DDefaultShader();
+	SPRITE = GctkCreateSprite(GctkSprite2DDefaultShader(), &TEXTURE);
 
 	while (GctkUpdate());
-	glDeleteTextures(1, &TEXTURE);
 
+	GctkDeleteTexture(&TEXTURE);
+	GctkDeleteSprite(&SPRITE);
 	GctkDispose();
 
 

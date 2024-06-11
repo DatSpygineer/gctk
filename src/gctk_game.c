@@ -3,6 +3,7 @@
 #include "gctk/str.h"
 #include "gctk/debug.h"
 #include "gctk/filesys.h"
+#include "gctk/rendering/viewport.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -23,11 +24,13 @@ static double GCTK_LAST_TIME = 0, GCTK_DELTA_TIME = 0;
 static Color GCTK_BACKGROUND_COLOR = COLOR(0.25f, 0.5f, 1.0f, 1.0f);
 
 static void GctkWindowResizeCallback(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
+	GctkUpdateViewport(width, height);
 }
 static void GctkGlfwErrorCallback(int code, const char* message) {
 	GctkLogFatal(GCTK_ERROR_GLFW_FAILURE, "GLFW error: %s (%d)", message, code);
 }
+
+extern void GctkSprite2DDeleteDefaultShader();
 
 const Version GCTK_ENGINE_VERSION = VERSION(
 	1, 0, 0, GCTK_VERSION_ALPHA
@@ -76,10 +79,13 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 		return false;
 	}
 
+	int w = 1360;
+	int h = 768;
+
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GCTK_WINDOW = glfwCreateWindow(512, 512, name, NULL, NULL);
+	GCTK_WINDOW = glfwCreateWindow(w, h, name, NULL, NULL);
 	if (GCTK_WINDOW == NULL) {
 		const char* error_desc;
 		int code = glfwGetError(&error_desc);
@@ -116,7 +122,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	GctkDebugEnableGLDebug();
 
-	glViewport(0, 0, 512, 512);
+	GctkSetupViewport2D(w, h, VEC2_ZERO, -100, 100);
 
 	return true;
 }
@@ -141,6 +147,7 @@ bool GctkUpdate() {
 void GctkDispose() {
 	if (GCTK_CLOSE_CALLBACK != NULL) GCTK_CLOSE_CALLBACK();
 
+	GctkSprite2DDeleteDefaultShader();
 	if (GCTK_WINDOW != NULL) glfwDestroyWindow(GCTK_WINDOW);
 	glfwTerminate();
 }

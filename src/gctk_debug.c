@@ -110,10 +110,8 @@ void GctkDebugEnableGLDebug() {
 
 void GctkCheckGLStatusImplementation(const char* glFunction, GctkDebugInfo debugInfo) {
 	GLenum error;
-	if ((error = glGetError()) != 0) {
-		GctkDispatchDebugMessage(GCTK_MESSAGE_ERROR, GCTK_ERROR_GL_RUNTIME, debugInfo,
-			"GL call \"%s\" has failed, OpenGL runtime error (%d):", glFunction, error
-		);
+	if ((error = glGetError()) != GL_NO_ERROR) {
+		bool header = false;
 		GLuint count = glGetDebugMessageLog(1, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 		while (count > 0) {
 			GLenum sources[1];
@@ -122,8 +120,21 @@ void GctkCheckGLStatusImplementation(const char* glFunction, GctkDebugInfo debug
 			GLenum severities[1];
 			GLsizei lengths[1];
 			GLchar messageLog[256];
+
 			glGetDebugMessageLog(1, sizeof(messageLog), sources, types, ids, severities, lengths, messageLog);
+
+			if (*severities != GL_DEBUG_TYPE_ERROR) {
+				goto NEXT;
+			}
+
+			if (!header) {
+				GctkDispatchDebugMessage(GCTK_MESSAGE_ERROR, GCTK_ERROR_GL_RUNTIME, debugInfo,
+										 "GL call \"%s\" has failed, OpenGL runtime error (%d):", glFunction, error
+				);
+				header = true;
+			}
 			printf("\t%d: %s\n", ids[0], messageLog);
+			NEXT:
 			count = glGetDebugMessageLog(1, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 		}
 	}

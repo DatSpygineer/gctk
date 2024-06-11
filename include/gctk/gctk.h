@@ -12,6 +12,8 @@ extern "C" {
 #include "gctk/rendering/mesh.h"
 #include "gctk/rendering/shader.h"
 #include "gctk/rendering/texture.h"
+#include "gctk/rendering/sprite.h"
+#include "gctk/rendering/viewport.h"
 
 #ifdef __cplusplus
 }

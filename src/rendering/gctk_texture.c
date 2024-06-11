@@ -193,6 +193,7 @@ bool GctkLoadImageFromFile(Texture* texture, const char* path, ImageLoaderFlags 
 	int w, h, c;
 	void* image_data = stbi_load(path, &w, &h, &c, 0);
 	if (image_data == NULL) {
+		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to open file \"%s\"", path);
 		return false;
 	}
 

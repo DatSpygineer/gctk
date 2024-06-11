@@ -42,6 +42,7 @@ typedef enum GctkDebugMessageType {
 
 typedef enum GctkErrorCode {
 	GCTK_OK,
+	GCTK_ERROR_OUT_OF_RANGE,
 	GCTK_ERROR_GLFW_FAILURE,
 	GCTK_ERROR_GL_INIT,
 	GCTK_ERROR_GL_RUNTIME,

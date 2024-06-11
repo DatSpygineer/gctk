@@ -10,6 +10,8 @@ typedef struct Mesh {
 	GLsizei vertex_count;
 } Mesh;
 
+#define GCTK_MESH_NULL ((Mesh){ 0 })
+
 GCTK_API bool GctkCreateMesh(Mesh* mesh, const float* buffer, size_t buffer_size, GLsizei vertex_count);
 
 GCTK_API bool GctkCreateMeshWithIndex(Mesh* mesh,
@@ -19,5 +21,6 @@ GCTK_API bool GctkCreateMeshWithIndex(Mesh* mesh,
 );
 
 GCTK_API void GctkDrawMesh(const Mesh* mesh);
+GCTK_API void GctkDeleteMesh(Mesh* mesh);
 
 #endif
