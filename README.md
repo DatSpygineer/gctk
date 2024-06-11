@@ -13,5 +13,6 @@ This project is in a very early stage, it is not feature complete and breaking u
 * ✔️ Rendering of 2D sprites
 * ❌ Tilemap rendering
 * ❌ Sprite batching
+* ❌ ECS
 * ❌ Fully featured lua bindings
 * ❌ Editor application
