@@ -4,6 +4,8 @@
 #include "gctk/debug.h"
 #include "gctk/filesys.h"
 #include "gctk/rendering/viewport.h"
+#include "gctk/rendering/sprite.h"
+#include "gctk/rendering/render_queue.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -138,6 +140,20 @@ bool GctkUpdate() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (GCTK_RENDER_CALLBACK != NULL) GCTK_RENDER_CALLBACK(GCTK_DELTA_TIME);
+
+	while (!GctkRenderQueueIsEmpty()) {
+		const RenderCall* call = GctkRenderDequeue();
+		if (call->is_model) {
+			GctkDrawMesh(call->mesh, *(call->is_3d ?
+									(const Mat4*)&call->transform3D :
+									(const Mat4*) &call->transform2D),
+									GctkGetViewportMatrix()
+			);
+		} else {
+			GctkSpriteDraw(call->sprite, call->color,
+						   call->is_3d ? (void*) &call->transform3D : (void*) &call->transform2D);
+		}
+	}
 
 	glfwSwapBuffers(GCTK_WINDOW);
 	GCTK_LAST_TIME = time;

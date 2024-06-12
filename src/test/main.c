@@ -3,11 +3,12 @@
 static Texture TEXTURE;
 
 static Transform2D TRANSFORM = { .position = VEC2(200, 200), .scale = VEC2(100, 100) };
+static Transform2D TRANSFORM2 = { .position = VEC2(250, 250), .scale = VEC2(100, 100) };
 static Sprite SPRITE;
 
-static void render(double delta) {
-	Transform2DUpdateMatrix(&TRANSFORM);
-	GctkSpriteDraw(&SPRITE, COLOR(1.0f, 1.0f, 1.0f, 1.0f), &TRANSFORM);
+static void update(double delta) {
+	GctkRenderEnqueueSprite2D(&SPRITE, COLOR(1.0, 1.0, 1.0, 1.0), TRANSFORM);
+	GctkRenderEnqueueSprite2D(&SPRITE, COLOR(1.0, 0.0, 0.0, 1.0), TRANSFORM2);
 }
 
 int main(int argc, char** argv) {
@@ -15,12 +16,13 @@ int main(int argc, char** argv) {
 		return GctkLastErrorCode();
 	}
 
-	GctkSetRenderCallback(&render);
+	GctkSetUpdateCallback(&update);
 
 	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE, "test.png", GCTK_IMAGE_POINT_FILTER),
 					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
 
-	SPRITE = GctkCreateSprite(GctkSprite2DDefaultShader(), &TEXTURE);
+	GctkAssertFatal(GctkCreateSprite(&SPRITE, GctkSprite2DDefaultShader(), &TEXTURE),
+					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite!");
 
 	while (GctkUpdate());
 

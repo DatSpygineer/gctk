@@ -28,26 +28,28 @@ const char* GCTK_SPRITE2D_FRAGMENT =
 		"}\n";
 
 static Shader GCTK_SPRITE2D_SHADER = GCTK_SHADER_NULL;
-static Mesh GCTK_SPRITE2D_MESH = GCTK_MESH_NULL;
 
 static float VERTS[] = {
-	-0.5f,  0.5f, 0.0f,   0.0f, 0.0f,
-	 0.5f,  0.5f, 0.0f,   1.0f, 0.0f,
-	 0.5f, -0.5f, 0.0f,   1.0f, 1.0f,
-	 0.5f, -0.5f, 0.0f,   1.0f, 1.0f,
-	-0.5f, -0.5f, 0.0f,   0.0f, 1.0f,
-	-0.5f,  0.5f, 0.0f,   0.0f, 0.0f
+	0.0f, 1.0f, 0.0f,   0.0f, 0.0f,
+	1.0f, 1.0f, 0.0f,   1.0f, 0.0f,
+	1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+	1.0f, 0.0f, 0.0f,   1.0f, 1.0f,
+	0.0f, 0.0f, 0.0f,   0.0f, 1.0f,
+	0.0f, 1.0f, 0.0f,   0.0f, 0.0f
 };
 
 extern Mat4 GctkGetViewportMatrix();
 
-Sprite GctkCreateSprite(const Shader* shader, const Texture* texture) {
-	GctkCreateMesh(&GCTK_SPRITE2D_MESH, VERTS, sizeof(VERTS), 6);
-	return (Sprite){shader, texture, GCTK_SPRITE2D_MESH };
+bool GctkCreateSprite(Sprite* sprite, const Shader* shader, const Texture* texture) {
+	Mesh mesh;
+	if (!GctkCreateMesh(&mesh, VERTS, sizeof(VERTS), 6, shader)) return false;
+	*sprite = (Sprite){ texture, mesh };
+	return true;
 }
 void GctkDeleteSprite(Sprite* sprite) {
 	if (sprite) {
 		GctkDeleteMesh(&sprite->mesh);
+		memset(sprite, 0, sizeof(Sprite));
 	}
 }
 
@@ -55,15 +57,13 @@ bool GctkSpriteDrawGeneric(const Sprite* sprite, Color color, Mat4 transform, Ma
 	if (sprite == NULL || sprite->texture->id == 0) return false;
 
 	GctkBindTexture(sprite->texture);
-	GctkApplyShader(sprite->shader);
-	GctkSetShaderUniformMat4(sprite->shader, "TRANSFORM_MATRIX", transform);
-	GctkSetShaderUniformMat4(sprite->shader, "VIEW_MATRIX", view);
-	GctkSetShaderUniformColor(sprite->shader, "COLOR_TINT", color);
-	GctkSetShaderUniformTexture(sprite->shader, "TEXTURE", sprite->texture);
+	GctkApplyShader(sprite->mesh.shader);
+	GctkSetShaderUniformColor(sprite->mesh.shader, "COLOR_TINT", color);
+	GctkSetShaderUniformTexture(sprite->mesh.shader, "TEXTURE", sprite->texture);
 
 	glBindTexture(sprite->texture->target, 0);
 
-	GctkDrawMesh(&sprite->mesh);
+	GctkDrawMesh(&sprite->mesh, transform, view);
 	return true;
 }
 

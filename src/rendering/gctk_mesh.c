@@ -2,12 +2,12 @@
 
 #include "gctk/debug.h"
 
-bool GctkCreateMesh(Mesh* mesh, const float* buffer, size_t buffer_size, GLsizei vertex_count) {
-	return GctkCreateMeshWithIndex(mesh, buffer, buffer_size, NULL, 0, vertex_count);
+bool GctkCreateMesh(Mesh* mesh, const float* buffer, size_t buffer_size, GLsizei vertex_count, const Shader* shader) {
+	return GctkCreateMeshWithIndex(mesh, buffer, buffer_size, NULL, 0, vertex_count, shader);
 }
 
 bool GctkCreateMeshWithIndex(Mesh* mesh, const float* buffer, size_t buffer_size, const GLuint* indices,
-							 size_t index_count, GLsizei vertex_count) {
+							 size_t index_count, GLsizei vertex_count, const Shader* shader) {
 	GLuint vbo, vao, ebo;
 
 	GctkGLCall(glGenVertexArrays(1, &vao));
@@ -48,12 +48,15 @@ bool GctkCreateMeshWithIndex(Mesh* mesh, const float* buffer, size_t buffer_size
 	GctkGLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0));
 	GctkGLCall(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float))));
 
-	*mesh = (Mesh){ .vao = vao, .vbo = vbo, .ebo = ebo, .vertex_count = vertex_count };
+	*mesh = (Mesh){ .vao = vao, .vbo = vbo, .ebo = ebo, .vertex_count = vertex_count, .shader = shader };
 	return true;
 }
 
-void GctkDrawMesh(const Mesh* mesh) {
+void GctkDrawMesh(const Mesh* mesh, Mat4 transform, Mat4 view) {
 	if (mesh != NULL && mesh->vao != 0) {
+		GctkApplyShader(mesh->shader);
+		GctkSetShaderUniformMat4(mesh->shader, "TRANSFORM_MATRIX", transform);
+		GctkSetShaderUniformMat4(mesh->shader, "VIEW_MATRIX", view);
 		GctkGLCall(glBindVertexArray(mesh->vao));
 		if (mesh->ebo != 0) {
 			GctkGLCall(glDrawElements(GL_TRIANGLES, mesh->vertex_count, GL_UNSIGNED_INT, 0));

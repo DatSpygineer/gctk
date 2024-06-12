@@ -7,12 +7,11 @@
 #include "gctk/common.h"
 
 typedef struct Sprite {
-	const Shader* shader;
 	const Texture* texture;
 	Mesh mesh;
 } Sprite;
 
-GCTK_API Sprite GctkCreateSprite(const Shader* shader, const Texture* texture);
+GCTK_API bool GctkCreateSprite(Sprite* sprite, const Shader* shader, const Texture* texture);
 GCTK_API void GctkDeleteSprite(Sprite* sprite);
 GCTK_API bool GctkSpriteDrawGeneric(const Sprite* sprite, Color color, Mat4 transform, Mat4 view);
 #define GctkSpriteDraw(__sprite_ptr__, __color__, __transform_ptr__) GctkSpriteDrawGeneric(__sprite_ptr__, \
