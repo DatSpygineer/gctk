@@ -4,6 +4,7 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "gctk/stb/stb_image.h"
+#include "gctk/math.h"
 
 GLuint GctkGetGLTarget(TextureTarget target) {
 	switch (target) {
@@ -30,10 +31,12 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 		return false;
 	}
 
-	GctkGLCall(glGenTextures(1, &texture->id));
 	if (texture->id == 0) {
-		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to generate GL texture");
-		return false;
+		GctkGLCall(glGenTextures(1, &texture->id));
+		if (texture->id == 0) {
+			GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to generate GL texture");
+			return false;
+		}
 	}
 
 	texture->target = target;
@@ -105,14 +108,14 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 		} break;
 	}
 
-	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_R, (flags & GCTK_IMAGE_CLAMP_R) ? GL_CLAMP : GL_REPEAT));
-	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_S, (flags & GCTK_IMAGE_CLAMP_S) ? GL_CLAMP : GL_REPEAT));
-	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_T, (flags & GCTK_IMAGE_CLAMP_T) ? GL_CLAMP : GL_REPEAT));
-	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_MAG_FILTER, (flags & GCTK_IMAGE_POINT_FILTER) ? GL_NEAREST : GL_LINEAR));
+	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_R, (flags & GCTK_IMAGE_FLAG_CLAMP_R) ? GL_CLAMP : GL_REPEAT));
+	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_S, (flags & GCTK_IMAGE_FLAG_CLAMP_S) ? GL_CLAMP : GL_REPEAT));
+	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_WRAP_T, (flags & GCTK_IMAGE_FLAG_CLAMP_T) ? GL_CLAMP : GL_REPEAT));
+	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_MAG_FILTER, (flags & GCTK_IMAGE_FLAG_POINT_FILTER) ? GL_NEAREST : GL_LINEAR));
 	GctkGLCall(glTexParameteri(gl_target, GL_TEXTURE_MIN_FILTER,
-					(flags & GCTK_IMAGE_GENERATE_MIPMAPS) ?
-					((flags & GCTK_IMAGE_POINT_FILTER) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR) :
-					((flags & GCTK_IMAGE_POINT_FILTER) ? GL_NEAREST : GL_LINEAR)
+					(flags & GCTK_IMAGE_FLAG_GENERATE_MIPMAPS) ?
+					((flags & GCTK_IMAGE_FLAG_POINT_FILTER) ? GL_NEAREST_MIPMAP_NEAREST : GL_LINEAR_MIPMAP_LINEAR) :
+					((flags & GCTK_IMAGE_FLAG_POINT_FILTER) ? GL_NEAREST : GL_LINEAR)
 	));
 
 	switch (target) {
@@ -149,7 +152,7 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 		} break;
 	}
 
-	if (flags & GCTK_IMAGE_GENERATE_MIPMAPS) {
+	if (flags & GCTK_IMAGE_FLAG_GENERATE_MIPMAPS) {
 		GctkGLCall(glGenerateMipmap(gl_target));
 	}
 
@@ -246,8 +249,74 @@ bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size) {
 			depth = *((const uint16_t*)(data + offset)); offset += 2;
 		}
 
-		return GctkLoadGLTexture(texture, data + offset, data_size - offset, width, height, depth,
-								 (ImageLoaderFlags)flags, target, format);
+		if (format & GCTK_WITH_RLE) {
+			size_t packet_size;
+			switch ((TextureFormat)(format & ~GCTK_WITH_RLE)) {
+				case GCTK_INDEXED_8:
+				case GCTK_GRAYSCALE: {
+					packet_size = 2;	// count (1), data (1)
+				} break;
+				case GCTK_RGB:
+				case GCTK_INDEXED_16_ALPHA:
+				case GCTK_INDEXED_16:
+				case GCTK_INDEXED_8_ALPHA:
+				case GCTK_GRAYSCALE_ALPHA: {
+										// RGB, IDX16A        => count (1), data (3)
+					packet_size = 4;	// LA88, IDX8A, IDX16 => count (1), data (2), unused (1)
+				} break;
+				case GCTK_RGBA: {
+					packet_size = 6;	// count (1), data (4), unused (1)
+				} break;
+			}
+
+			uint8_t stride;
+			switch ((TextureFormat) (format & ~GCTK_WITH_RLE)) {
+				case GCTK_INDEXED_8:
+				case GCTK_GRAYSCALE: {
+					stride = 1;
+				} break;
+				case GCTK_INDEXED_16:
+				case GCTK_INDEXED_8_ALPHA:
+				case GCTK_GRAYSCALE_ALPHA: {
+					stride = 2;
+				} break;
+				case GCTK_INDEXED_16_ALPHA:
+				case GCTK_RGB: {
+					stride = 3;
+				} break;
+				case GCTK_RGBA: {
+					stride = 4;
+				} break;
+			}
+			size_t uncompressed_data_size = (width * GctkMin(height, 1) * GctkMin(depth, 1)) * stride;
+			size_t palette_size = (format >= GCTK_INDEXED_8 && format <= GCTK_INDEXED_16_ALPHA) ?
+					(*((uint16_t*)(data + offset))) : 0;
+			uint8_t* uncompressed_data = (uint8_t*)malloc(uncompressed_data_size);
+
+			size_t write_offset = 0;
+			uint64_t packet = 0;
+			while (offset < data_size) {
+				size_t current_packet_size = (palette_size > 0 && write_offset < palette_size) ? 4 : packet_size;
+				memcpy(&packet, uncompressed_data, current_packet_size);
+				uint8_t count = packet & 0xFF;
+				packet >>= 8;
+
+				size_t current_stride = (palette_size > 0 && write_offset < palette_size) ? 4 : stride;
+				for (uint8_t i = 0; i < count; i++) {
+					for (size_t j = 0; j < current_stride; j++) {
+						uncompressed_data[write_offset++] = packet & 0xFF;
+						packet >>= 8;
+					}
+				}
+
+				offset += current_packet_size;
+			}
+			return GctkLoadGLTexture(texture, uncompressed_data, uncompressed_data_size, width, height, depth,
+									 (ImageLoaderFlags) flags, target, format & ~GCTK_WITH_RLE);
+		} else {
+			return GctkLoadGLTexture(texture, data + offset, data_size - offset, width, height, depth,
+									 (ImageLoaderFlags) flags, target, format & ~GCTK_WITH_RLE);
+		}
 	} else {
 		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Invalid identifier! Expected 'GTEX'");
 		return false;
@@ -282,5 +351,7 @@ void GctkDeleteTexture(Texture* texture) {
 	}
 }
 void GctkBindTexture(const Texture* texture) {
-	GctkGLCall(glBindTexture(GctkGetGLTarget(texture->target), texture->id));
+	if (texture != NULL) {
+		GctkGLCall(glBindTexture(GctkGetGLTarget(texture->target), texture->id));
+	}
 }

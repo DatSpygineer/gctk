@@ -1,6 +1,8 @@
 #include "gctk/rendering/viewport.h"
 #include "gctk/debug.h"
 
+#include <GL/glew.h>
+
 static Viewport2D GCTK_VIEWPORT_2D;
 static Vec2       GCTK_VIEWPORT_2D_OFFSET;
 static Viewport3D GCTK_VIEWPORT_3D;
@@ -40,14 +42,15 @@ bool GctkSetupViewport3D(int width, int height, float fov, Vec3 position, AxisAn
 
 void GctkUpdateViewport(int width, int height) {
 	if (GCTK_VIEWPORT_IS_2D) {
-		GCTK_VIEWPORT_2D.right = (float)width / GCTK_VIEWPORT_SCALE;
-		GCTK_VIEWPORT_2D.top   = (float)height / GCTK_VIEWPORT_SCALE;
+		GCTK_VIEWPORT_2D.right = (float)width;
+		GCTK_VIEWPORT_2D.top   = (float)height;
 		Viewport2DUpdateMatrix(&GCTK_VIEWPORT_2D);
 	} else {
-		GCTK_VIEWPORT_3D.width = (float)width / GCTK_VIEWPORT_SCALE;
-		GCTK_VIEWPORT_3D.height = (float)height / GCTK_VIEWPORT_SCALE;
+		GCTK_VIEWPORT_3D.width = (float)width;
+		GCTK_VIEWPORT_3D.height = (float)height;
 		Viewport3DUpdateMatrix(&GCTK_VIEWPORT_3D);
 	}
+	glViewport(0, 0, width, height);
 }
 void GctkUpdateViewportUpdateCurrent() {
 	if (GCTK_VIEWPORT_IS_2D) {

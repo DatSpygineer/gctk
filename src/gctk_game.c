@@ -19,6 +19,8 @@ static char GCTK_AUTHOR[512] = { 0 };
 static Version GCTK_VERSION = { 0 };
 static void (*GCTK_UPDATE_CALLBACK)(double) = NULL;
 static void (*GCTK_RENDER_CALLBACK)(double) = NULL;
+static void (*GCTK_PRE_RENDER_CALLBACK)(double) = NULL;
+static void (*GCTK_POST_RENDER_CALLBACK)(double) = NULL;
 static void (*GCTK_CLOSE_CALLBACK)() = NULL;
 
 static double GCTK_LAST_TIME = 0, GCTK_DELTA_TIME = 0;
@@ -136,6 +138,8 @@ bool GctkUpdate() {
 
 	if (GCTK_UPDATE_CALLBACK != NULL) GCTK_UPDATE_CALLBACK(GCTK_DELTA_TIME);
 
+	if (GCTK_PRE_RENDER_CALLBACK != NULL) GCTK_PRE_RENDER_CALLBACK(GCTK_DELTA_TIME);
+
 	glClearColor(GCTK_BACKGROUND_COLOR.r, GCTK_BACKGROUND_COLOR.g, GCTK_BACKGROUND_COLOR.b, GCTK_BACKGROUND_COLOR.a);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -154,6 +158,8 @@ bool GctkUpdate() {
 						   call->is_3d ? (void*) &call->transform3D : (void*) &call->transform2D);
 		}
 	}
+
+	if (GCTK_POST_RENDER_CALLBACK != NULL) GCTK_POST_RENDER_CALLBACK(GCTK_DELTA_TIME);
 
 	glfwSwapBuffers(GCTK_WINDOW);
 	GCTK_LAST_TIME = time;
@@ -193,6 +199,12 @@ void GctkSetUpdateCallback(void (*callback)(double)) {
 void GctkSetRenderCallback(void (*callback)(double)) {
 	GCTK_RENDER_CALLBACK = callback;
 }
+void GctkSetPreRenderCallback(void (*callback)(double)) {
+	GCTK_PRE_RENDER_CALLBACK = callback;
+}
+void GctkSetPostRenderCallback(void (*callback)(double)) {
+	GCTK_POST_RENDER_CALLBACK = callback;
+}
 void GctkSetCloseCallback(void (*callback)()) {
 	GCTK_CLOSE_CALLBACK = callback;
 }
@@ -202,4 +214,19 @@ double GctkTime() {
 }
 double GctkDeltaTime() {
 	return GCTK_DELTA_TIME;
+}
+
+void* GctkGetWindowHandle() {
+	return (void*)GCTK_WINDOW;
+}
+
+Vec2i GctkGetWindowSize() {
+	int w, h;
+	glfwGetFramebufferSize(GCTK_WINDOW, &w, &h);
+	return (Vec2i){ w, h };
+}
+Vec2i GctkGetWindowPos() {
+	int x, y;
+	glfwGetWindowPos(GCTK_WINDOW, &x, &y);
+	return (Vec2i){ x, y };
 }

@@ -54,7 +54,7 @@ void GctkDeleteSprite(Sprite* sprite) {
 }
 
 bool GctkSpriteDrawGeneric(const Sprite* sprite, Color color, Mat4 transform, Mat4 view) {
-	if (sprite == NULL || sprite->texture->id == 0) return false;
+	if (sprite == NULL || sprite->texture == NULL || sprite->texture->id == 0) return false;
 
 	GctkBindTexture(sprite->texture);
 	GctkApplyShader(sprite->mesh.shader);

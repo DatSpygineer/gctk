@@ -35,10 +35,17 @@ GCTK_API Color GctkGetBackgroundColor();
 GCTK_API void GctkSetBackgroundColor(Color color);
 
 GCTK_API void GctkSetUpdateCallback(void (*callback)(double));
+GCTK_API void GctkSetPreRenderCallback(void (*callback)(double));
 GCTK_API void GctkSetRenderCallback(void (*callback)(double));
+GCTK_API void GctkSetPostRenderCallback(void (*callback)(double));
 GCTK_API void GctkSetCloseCallback(void (*callback)());
 
 GCTK_API double GctkTime();
 GCTK_API double GctkDeltaTime();
+
+GCTK_API void* GctkGetWindowHandle();
+
+GCTK_API Vec2i GctkGetWindowSize();
+GCTK_API Vec2i GctkGetWindowPos();
 
 #endif

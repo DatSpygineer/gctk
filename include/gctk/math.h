@@ -101,6 +101,8 @@ typedef struct AxisAngle {
 } AxisAngle;
 
 #define VEC2(__x, __y) ((Vec2){ __x, __y })
+#define VEC2I(__x, __y) ((Vec2i){ __x, __y })
+#define VEC2U(__x, __y) ((Vec2u){ __x, __y })
 #define VEC3(__x, __y, __z) ((Vec3){ __x, __y, __z })
 #define VEC4(__x, __y, __z, __w) ((Vec4){ __x, __y, __z, __w })
 #define QUAT(__x, __y, __z, __w) ((Quat){ __x, __y, __z, __w })
@@ -108,6 +110,7 @@ typedef struct AxisAngle {
 #define MAT4_COLUMNS(__col0__, __col1__, __col2__, __col3__) ((Mat4){ .columns = { (__col0__), (__col1__), (__col2__), (__col3__) } })
 #define AXIS_ANGLE(__axis__, __angle__) ((AxisAngle){ Vec3Norm(__axis__), __angle__ })
 #define COLOR(__r, __g, __b, __a) ((Color){ __r, __g, __b, __a })
+#define COLOR_NO_ALPHA(__r, __g, __b) ((Color){ __r, __g, __b, 1.0f })
 #define COLOR32(__r, __g, __b, __a) ((Color32){ __r, __g, __b, __a })
 
 GCTK_API Vec2 Vec2Add(Vec2 lhs, Vec2 rhs);
