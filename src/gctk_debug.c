@@ -6,6 +6,8 @@
 
 #include <time.h>
 
+extern void GctkDispose();
+
 static FILE* GCTK_DEBUG_LOG = NULL;
 
 static GctkErrorCode GCTK_ERROR_CODE = GCTK_OK;
@@ -20,6 +22,7 @@ bool GctkSetupDebugLogger() {
 	}
 	GCTK_DEBUG_LOG = NULL;
 	GctkGetBaseDirectory(GCTK_LOG_PATH);
+
 	GctkPathAppend(GCTK_LOG_PATH, "logs");
 	if (!GctkPathExists(GCTK_LOG_PATH)) {
 		if (!GctkCreateDir(GCTK_LOG_PATH, true)) {
@@ -33,11 +36,14 @@ bool GctkSetupDebugLogger() {
 	strftime(filename, 128, "log_%Y_%m_%d.log", lt);
 	GctkPathAppend(GCTK_LOG_PATH, filename);
 
+	printf("Debug log path ==> \"%s\"\n", GCTK_LOG_PATH);
+
 	GCTK_DEBUG_LOG = fopen(GCTK_LOG_PATH, "a+");
 	return GCTK_DEBUG_LOG != NULL;
 }
 void GctkCloseDebugLogger() {
 	if (GCTK_DEBUG_LOG != NULL) {
+		fflush(GCTK_DEBUG_LOG);
 		fclose(GCTK_DEBUG_LOG);
 	}
 	GCTK_DEBUG_LOG = NULL;
@@ -172,14 +178,20 @@ void GctkCrash(const char* crash_message_format, ...) {
 	GctkPathAppend(crash_path, filename);
 
 	int file_index = 1;
-	while (!GctkPathExists(crash_path)) {
+	while (GctkPathExists(crash_path)) {
 		GctkPathPop(crash_path);
 		strftime(date, 64, "%Y_%m_%d", lt);
 		snprintf(filename, 128, "%s_%03d.log", date, file_index++);
 		GctkPathAppend(crash_path, filename);
 	}
 
+	if (GCTK_DEBUG_LOG != NULL) {
+		fflush(GCTK_DEBUG_LOG);
+		fclose(GCTK_DEBUG_LOG);
+		GCTK_DEBUG_LOG = NULL;
+	}
 	GctkCopyFile(GCTK_LOG_PATH, crash_path, true);
 EXIT:
+	GctkDispose();
 	exit(GCTK_ERROR_CODE == GCTK_OK ? -1 : GCTK_ERROR_CODE);
 }

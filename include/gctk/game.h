@@ -30,6 +30,7 @@ GCTK_API void GctkDispose();
 
 GCTK_API void GctkClose();
 GCTK_API void GctkGetBaseDirectory(char* buffer);
+GCTK_API void GctkGetUserDirectory(char* buffer);
 
 GCTK_API Color GctkGetBackgroundColor();
 GCTK_API void GctkSetBackgroundColor(Color color);

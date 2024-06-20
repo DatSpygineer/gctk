@@ -11,7 +11,9 @@
 	#define GCTK_PATH_SEP '\\'
 	#define GCTK_PATH_SEP_STR "\\"
 	#define GCTK_PATH_MAX 260
+	#include <windows.h>
 #else
+	#include <dirent.h>
 	#include <limits.h>
 	#define GCTK_PATH_SEP '/'
 	#define GCTK_PATH_SEP_STR "/"
@@ -36,6 +38,16 @@ typedef enum {
 	GCTK_FILE_BINARY = 4
 } GctkFileCreationFlag;
 
+typedef struct {
+	void* entry;
+#ifdef _WIN32
+	WIN32_FIND_DATA data;
+#else
+	DIR* dir;
+	char root[GCTK_PATH_MAX];
+#endif
+} DirectoryIterator;
+
 GCTK_API char* GctkPathGetBase(char* buffer, const char* src);
 GCTK_API char* GctkPathJoin(char* buffer, const char* lhs, const char* rhs);
 GCTK_API char* GctkPathVJoin(char* buffer, size_t count, ...);
@@ -55,6 +67,11 @@ GCTK_API bool GctkPathIsFile(const char* path);
 
 GCTK_API bool GctkCreateDir(const char* path, bool recursive);
 GCTK_API bool GctkDeleteDir(const char* path, bool recursive);
+
+GCTK_API bool GctkStartDirIterator(const char* path, DirectoryIterator* iterator);
+GCTK_API bool GctkDirIteratorCurrent(DirectoryIterator* iterator, char* path, bool* is_dir);
+GCTK_API bool GctkDirIteratorNext(DirectoryIterator* iterator);
+GCTK_API void GctkCloseDirIterator(DirectoryIterator* iterator);
 
 GCTK_API bool GctkDeleteFile(const char* path);
 GCTK_API bool GctkCopyFile(const char* from_path, const char* to_path, bool overwrite);
@@ -77,5 +94,7 @@ GCTK_API size_t GctkFileSize(FILE* file);
 GCTK_API size_t GctkFileRead(FILE* file, void* dest, size_t read_count, size_t item_size);
 GCTK_API size_t GctkFileReadToEnd(FILE* file, void* dest, size_t max_buffer_size);
 GCTK_API size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size);
+
+GCTK_API size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const char* delims);
 
 #endif // GCTK_FILESYS_H

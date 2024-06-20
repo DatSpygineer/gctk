@@ -2,6 +2,7 @@
 
 #include "gctk/str.h"
 #include "gctk/debug.h"
+#include "gctk/input.h"
 #include "gctk/filesys.h"
 #include "gctk/rendering/viewport.h"
 #include "gctk/rendering/sprite.h"
@@ -74,7 +75,13 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	GctkStrCpy(GCTK_AUTHOR, author, 512);
 	GctkPathGetBase(GCTK_BASE_DIR, argv[0]);
 
+	char base_path[GCTK_PATH_MAX];
+	GctkGetUserDirectory(base_path);
+	GctkCreateDir(base_path, true);
+
 	glfwSetErrorCallback(&GctkGlfwErrorCallback);
+
+	GctkSetupDebugLogger();
 
 	if (glfwInit() == GLFW_FALSE) {
 		const char* error_desc;
@@ -124,6 +131,10 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	GctkSetupInputCallbacks();
+	GctkLoadInputMap();
+
 	GctkDebugEnableGLDebug();
 
 	GctkSetupViewport2D(w, h, VEC2_ZERO, -100, 100);
@@ -135,6 +146,8 @@ bool GctkUpdate() {
 	double time = glfwGetTime();
 	glfwPollEvents();
 	GCTK_DELTA_TIME = time - GCTK_LAST_TIME;
+
+	GctkUpdateInputStates();
 
 	if (GCTK_UPDATE_CALLBACK != NULL) GCTK_UPDATE_CALLBACK(GCTK_DELTA_TIME);
 
@@ -171,6 +184,8 @@ void GctkDispose() {
 
 	GctkSprite2DDeleteDefaultShader();
 	if (GCTK_WINDOW != NULL) glfwDestroyWindow(GCTK_WINDOW);
+
+	GctkCloseDebugLogger();
 	glfwTerminate();
 }
 
@@ -184,6 +199,11 @@ void GctkGetBaseDirectory(char* buffer) {
 	} else {
 		GctkPathGetCurrentDir(buffer);
 	}
+}
+void GctkGetUserDirectory(char* buffer) {
+	GctkPathGetUserBaseDirectory(buffer);
+	GctkPathAppend(buffer, GCTK_AUTHOR);
+	GctkPathAppend(buffer, GCTK_NAME);
 }
 
 Color GctkGetBackgroundColor() {

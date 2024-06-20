@@ -9,6 +9,7 @@ extern "C" {
 #include "gctk/math.h"
 #include "gctk/game.h"
 #include "gctk/debug.h"
+#include "gctk/input.h"
 #include "gctk/rendering/mesh.h"
 #include "gctk/rendering/shader.h"
 #include "gctk/rendering/texture.h"

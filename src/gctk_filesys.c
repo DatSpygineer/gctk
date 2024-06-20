@@ -16,8 +16,10 @@
 char* GctkPathGetBase(char* buffer, const char* src) {
 	char* p = strrchr(src, GCTK_PATH_SEP);
 	if (p == NULL) {
-		GctkStrCpy(buffer, src, GCTK_PATH_MAX);
+		return GctkStrCpy(buffer, src, GCTK_PATH_MAX);
 	}
+
+	return GctkStrNCpy(buffer, src, GCTK_PATH_MAX, p - src);
 }
 char* GctkPathJoin(char* buffer, const char* lhs, const char* rhs) {
 	return GctkPathVJoin(buffer, 2, lhs, rhs);
@@ -59,7 +61,7 @@ char* GctkPathAppend(char* buffer, const char* other) {
 		if (!GctkStrEndWith(buffer, GCTK_PATH_SEP) && !GctkStrStartWith(other, GCTK_PATH_SEP)) {
 			GctkStrAppend(buffer, GCTK_PATH_SEP_STR, GCTK_PATH_MAX);
 		}
-		GctkStrAppend(buffer, other, GCTK_PATH_MAX);
+		return GctkStrAppend(buffer, other, GCTK_PATH_MAX);
 	}
 	return GctkStrCpy(buffer, other, GCTK_PATH_MAX);
 }
@@ -123,7 +125,88 @@ bool GctkCreateDir(const char* path, bool recursive) {
 #endif
 }
 bool GctkDeleteDir(const char* path, bool recursive) {
+	if (recursive) {
+		DirectoryIterator it;
+		if (!GctkStartDirIterator(path, &it)) {
+			return false;
+		}
+		char r_path[GCTK_PATH_MAX] = { 0 };
+		bool is_dir;
+		do {
+			if (GctkDirIteratorCurrent(&it, r_path, &is_dir)) {
+				if (!is_dir) {
+					GctkDeleteFile(r_path);
+				} else {
+					GctkDeleteDir(r_path, true);
+				}
+			}
+		} while (GctkDirIteratorNext(&it));
+		GctkCloseDirIterator(&it);
+	}
+#ifdef _WIN32
+	return RemoveDirectoryA(path);
+#else
+	return remove(path) == 0;
+#endif
+}
 
+bool GctkStartDirIterator(const char* path, DirectoryIterator* iterator) {
+	if (iterator == NULL) return false;
+#ifdef _WIN32
+	char search_pattern[GCTK_PATH_MAX];
+	snprintf(search_pattern, GCTK_PATH_MAX, "%s\\*", path);
+	iterator->entry = FindFirstFileA(search_pattern, &iterator->data);
+
+	return iterator->entry != INVALID_HANDLE_VALUE;
+#else
+	iterator->dir = opendir(path);
+	if (iterator->dir == NULL) {
+		return false;
+	}
+	iterator->entry = (void*)readdir(iterator->dir);
+	GctkStrCpy(iterator->root, path, GCTK_PATH_MAX);
+	return true;
+#endif
+}
+bool GctkDirIteratorCurrent(DirectoryIterator* iterator, char* path, bool* is_dir) {
+	if (iterator == NULL || path == NULL) return false;
+#ifdef _WIN32
+	if (GctkStrCpy(path, iterator->data.cFileName, GCTK_PATH_MAX) == 0) return false;
+	if (is_dir != NULL) {
+		*is_dir = (iterator->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+	}
+#else
+	struct dirent* entry = ((struct dirent*)iterator->entry)
+	if (entry == NULL) {
+		return false;
+	}
+	snprintf(path, GCTK_PATH_MAX, "%s/%s", iterator->root, entry->d_name);
+	struct stat st;
+	if (stat(path, &st) < 0) {
+		return false;
+	}
+	if (is_dir != NULL) {
+		*is_dir = S_ISDIR(path);
+	}
+#endif
+	return true;
+}
+bool GctkDirIteratorNext(DirectoryIterator* iterator) {
+	if (iterator == NULL) return false;
+#ifdef _WIN32
+	return FindNextFileA(iterator->entry, &iterator->data);
+#else
+	return (iterator->entry = readdir(dir)) != NULL;
+#endif
+}
+void GctkCloseDirIterator(DirectoryIterator* iterator) {
+	if (iterator == NULL) return;
+#ifdef _WIN32
+	FindClose(iterator->entry);
+#else
+	closedir(iterator->dir);
+#endif
+	memset(iterator, 0, sizeof(DirectoryIterator));
 }
 
 bool GctkDeleteFile(const char* path) {
@@ -266,4 +349,25 @@ size_t GctkFileReadToEnd(FILE* file, void* dest, size_t max_buffer_size) {
 }
 size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size) {
 	return fwrite(data, item_size, write_count, file);
+}
+
+size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const char* delims) {
+	if (feof(file) || ferror(file)) {
+		return 0;
+	}
+
+	size_t offset = 0;
+	char c;
+	while (!feof(file) && offset < max_buffer_size) {
+		c = (char)fgetc(file);
+
+		if (GctkStrFind(delims, c) == -1) {
+			buffer[offset++] = c;
+			continue;
+		}
+		break;
+	}
+
+	buffer[offset] = '\0';
+	return offset;
 }

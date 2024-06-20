@@ -44,6 +44,9 @@ typedef enum GctkErrorCode {
 	GCTK_OK,
 	GCTK_ERROR_OUT_OF_RANGE,
 	GCTK_ERROR_OUT_OF_MEMORY,
+	GCTK_ERROR_NULL_PTR,
+	GCTK_ERROR_REDEFINITION,
+	GCTK_ERROR_PARSE_FAILED,
 	GCTK_ERROR_GLFW_FAILURE,
 	GCTK_ERROR_GL_INIT,
 	GCTK_ERROR_GL_RUNTIME,
@@ -71,11 +74,12 @@ GCTK_API void GctkDispatchDebugMessage(GctkDebugMessageType type, GctkErrorCode 
 GCTK_API void GctkDispatchDebugMessageV(GctkDebugMessageType type, GctkErrorCode error_code, GctkDebugInfo debug_info,
 										const char* format, va_list args);
 
-#define GctkLog(__message__, ...) GctkDispatchDebugMessage(GCTK_MESSAGE_INFO, GCTK_OK, GCTK_GET_DEBUG_INFO, __message__,, ##__VA_ARGS__)
 
 #ifdef GCTK_ALLOW_LOG_WARNING
-	#define GctkLogWarn(__message__, ...) GctkDispatchDebugMessage(GCTK_MESSAGE_WARN, GCTK_OK, GCTK_GET_DEBUG_INFO, __message__,, ##__VA_ARGS__)
+	#define GctkLog(__message__, ...)     GctkDispatchDebugMessage(GCTK_MESSAGE_INFO, GCTK_OK, GCTK_GET_DEBUG_INFO, __message__, ##__VA_ARGS__)
+	#define GctkLogWarn(__message__, ...) GctkDispatchDebugMessage(GCTK_MESSAGE_WARN, GCTK_OK, GCTK_GET_DEBUG_INFO, __message__, ##__VA_ARGS__)
 #else
+	#define GctkLog(__message__, ...)     /* Disabled */
 	#define GctkLogWarn(__message__, ...) /* Disabled */
 #endif
 
