@@ -4,7 +4,7 @@
 
 static Texture TEXTURE;
 
-static Transform2D TRANSFORM = { .position = VEC2(200, 200), .scale = VEC2(100, 100) };
+static Transform2D TRANSFORM = { .position = VEC2_ZERO, .scale = VEC2(100, 100) };
 static Sprite SPRITE;
 
 static void update(double delta) {

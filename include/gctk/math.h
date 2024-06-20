@@ -238,7 +238,7 @@ typedef struct Transform2D Transform2D;
 
 struct Transform2D {
 	Mat4 matrix;
-	Vec2 position, scale, origin;
+	Vec2 position, origin, scale;
 	float angle, depth;
 	Transform2D* parent;
 };
