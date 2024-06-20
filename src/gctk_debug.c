@@ -36,13 +36,27 @@ bool GctkSetupDebugLogger() {
 	strftime(filename, 128, "log_%Y_%m_%d.log", lt);
 	GctkPathAppend(GCTK_LOG_PATH, filename);
 
+#ifndef NDEBUG
 	printf("Debug log path ==> \"%s\"\n", GCTK_LOG_PATH);
+#endif
 
 	GCTK_DEBUG_LOG = fopen(GCTK_LOG_PATH, "a+");
-	return GCTK_DEBUG_LOG != NULL;
+
+	if (GCTK_DEBUG_LOG != NULL) {
+		char date[32] = { 0 };
+		strftime(date, 32, "%Y.%m.%d %H:%M:%S", lt);
+		fprintf(GCTK_DEBUG_LOG, "==== Game instance started [%s] ====\n", date);
+		return true;
+	}
+	return false;
 }
 void GctkCloseDebugLogger() {
 	if (GCTK_DEBUG_LOG != NULL) {
+		time_t t = time(NULL);
+		struct tm* lt = localtime(&t);
+		char date[32] = { 0 };
+		strftime(date, 32, "%Y.%m.%d %H:%M:%S", lt);
+		fprintf(GCTK_DEBUG_LOG, "==== Game instance closed [%s] ====\n", date);
 		fflush(GCTK_DEBUG_LOG);
 		fclose(GCTK_DEBUG_LOG);
 	}

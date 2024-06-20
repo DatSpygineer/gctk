@@ -357,12 +357,12 @@ size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const 
 	}
 
 	size_t offset = 0;
-	char c;
+	int c;
 	while (!feof(file) && offset < max_buffer_size) {
-		c = (char)fgetc(file);
+		c = fgetc(file);
 
-		if (GctkStrFind(delims, c) == -1) {
-			buffer[offset++] = c;
+		if (GctkStrFind(delims, (char)c) == -1 && c != EOF) {
+			buffer[offset++] = (char)c;
 			continue;
 		}
 		break;

@@ -244,7 +244,7 @@ Input GctkInputFromString(const char* input, int device_id) {
 		}
 	}
 
-	if ((input[0] == 'F' || input[0] == 'f') && input[1] >= '0' && input[1] <= '9' && strlen(input) == 2) {
+	if (strlen(input) == 2 && (input[0] == 'F' || input[0] == 'f') && input[1] >= '0' && input[1] <= '9') {
 		return (Input) {
 				.input = strtol(input + 1, NULL, 10) + GLFW_KEY_F1,
 				.device = GCTK_DEVICE_KEYBOARD,
@@ -265,14 +265,14 @@ Input GctkInputFromString(const char* input, int device_id) {
 			.device_id = device_id
 		};
 	}
-	if ((input[0] >= 'a' && input[0] <= 'z') && strlen(input) == 1) {
+	if (strlen(input) == 1 && (input[0] >= 'a' && input[0] <= 'z')) {
 		return (Input) {
 			.input = (input[0] - 'a') + GLFW_KEY_A,
 			.device = GCTK_DEVICE_KEYBOARD,
 			.device_id = device_id
 		};
 	}
-	if ((input[0] >= 'A' && input[0] <= 'Z') && strlen(input) == 1) {
+	if (strlen(input) == 1 && (input[0] >= 'A' && input[0] <= 'Z')) {
 		return (Input) {
 			.input = (input[0] - 'A') + GLFW_KEY_A,
 			.device = GCTK_DEVICE_KEYBOARD,
@@ -631,7 +631,13 @@ bool GctkLoadInputMap() {
 	size_t action_count = 0;
 	int device_id = GCTK_GAMEPAD_ANY;
 	while (GctkFileReadLine(f, line, 128, "\n")) {
-		if (GctkStrStartWith(line, '[') && GctkStrEndWith(line, ']')) {
+		ssize_t j = GctkStrFindAnyLastNot(line, " \t\n\r");
+		line[j + 1] = '\0';
+		j = GctkStrFindAnyNot(line, " \t\n\r");
+
+		const char* line_trimmed = line + j;
+
+		if (GctkStrStartWith(line_trimmed, '[') && GctkStrEndWith(line_trimmed, ']')) {
 			if (strlen(key) > 0) {
 				GctkSetInputAction(key, action_count, action);
 				memset(key, 0, sizeof(char) * 64);
@@ -639,23 +645,31 @@ bool GctkLoadInputMap() {
 				action_count = 0;
 			}
 
-			ssize_t i = GctkStrFindLast(line, '|');
+			ssize_t i = GctkStrFindLast(line_trimmed, '|');
 			if (i >= 0) {
-				if (!GctkStrParseToInt(line + i + 1, 10, &device_id)) {
-					GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Failed to load input \"%s\": Failed to parse device id!", line);
+				if (!GctkStrParseToInt(line_trimmed + i + 1, 10, &device_id)) {
+					GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Failed to load input \"%s\": Failed to parse device id!", line_trimmed);
 					return false;
 				}
 			} else {
-				i = GctkStrFindLast(line, ']');
+				i = GctkStrFindLast(line_trimmed, ']');
 			}
-			GctkStrNCpy(key, line + 1, 64, i);
+			GctkStrNCpy(key, line_trimmed + 1, 64, i - 1);
 		} else {
 			if (action_count >= 64) {
 				GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Failed to load input \"%s\": Input limit reached!", key);
 				return false;
 			}
-			action[action_count++] = GctkInputFromString(line, device_id);
+			Input input = GctkInputFromString(line, device_id);
+			if (INPUT_IS_NONE(input)) {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to parse input \"%s\"!", line_trimmed);
+				continue;
+			}
+			action[action_count++] = input;
 		}
+	}
+	if (strlen(key) > 0) {
+		GctkSetInputAction(key, action_count, action);
 	}
 
 	return true;
@@ -810,6 +824,8 @@ static bool GctkInputGetAction(const char* name, InputAction* action) {
 			return true;
 		}
 	}
+
+	GctkLogError(GCTK_ERROR_UNDEFINED, "Attempt to get undefined input action \"%s\"", name);
 	return false;
 }
 

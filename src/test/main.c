@@ -27,12 +27,6 @@ int main(int argc, char** argv) {
 
 	GctkSetUpdateCallback(&update);
 
-//	GctkSetInputActionVA("MoveUp",    1, INPUT_KEY(GLFW_KEY_W)    );
-//	GctkSetInputActionVA("MoveDown",  1, INPUT_KEY(GLFW_KEY_S)    );
-//	GctkSetInputActionVA("MoveLeft",  1, INPUT_KEY(GLFW_KEY_A)    );
-//	GctkSetInputActionVA("MoveRight", 1, INPUT_KEY(GLFW_KEY_D)    );
-	GctkSetInputActionVA("Test",      1, INPUT_KEY(GLFW_KEY_ENTER));
-
 	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE, "test.png", GCTK_IMAGE_FLAG_POINT_FILTER),
 					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
 

@@ -64,9 +64,9 @@ bool GctkStrEq(const char* lhs, const char* rhs) {
 }
 bool GctkStrEqNoCase(const char* lhs, const char* rhs) {
 #ifdef _WIN32
-	return _stricmp(lhs, rhs);
+	return _stricmp(lhs, rhs) == 0;
 #else
-	return strcasecmp(lhs, rhs);
+	return strcasecmp(lhs, rhs) == 0;
 #endif
 }
 
