@@ -75,9 +75,12 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	GctkStrCpy(GCTK_AUTHOR, author, 512);
 	GctkPathGetBase(GCTK_BASE_DIR, argv[0]);
 
-	char base_path[GCTK_PATH_MAX];
+	char base_path[GCTK_PATH_MAX] = { 0 };
 	GctkGetUserDirectory(base_path);
-	GctkCreateDir(base_path, true);
+	if (!GctkPathIsDirectory(base_path) && !GctkCreateDir(base_path, true)) {
+		GctkLogFatal(GCTK_ERROR_IO_FAILURE, "Failed to create user directory \"%s\"", base_path);
+		return false;
+	}
 
 	glfwSetErrorCallback(&GctkGlfwErrorCallback);
 
@@ -93,6 +96,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	int w = 1360;
 	int h = 768;
 
+	glfwDefaultWindowHints();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

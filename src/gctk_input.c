@@ -622,6 +622,7 @@ bool GctkLoadInputMap() {
 
 	FILE* f = fopen(path, "r");
 	if (f == NULL) {
+		GctkLogWarn("Couldn't find input map \"%s\"", path);
 		return false;
 	}
 
@@ -868,3 +869,8 @@ Vec2 GctkInputGetVector(
 		GctkInputGetAxis(negative_y_action, positive_y_action)
 	);
 }
+
+bool GctkInputActionPressed(const char* action) { return GctkInputActionState(action) == GCTK_STATE_PRESSED; }
+bool GctkInputActionDown(const char* action) { return GctkInputActionState(action) == GCTK_STATE_DOWN; }
+bool GctkInputActionReleased(const char* action) { return GctkInputActionState(action) == GCTK_STATE_RELEASED; }
+bool GctkInputActionUp(const char* action) { return GctkInputActionState(action) == GCTK_STATE_UP; }

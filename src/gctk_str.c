@@ -131,10 +131,22 @@ bool GctkStrParseToFloat(const char* str, float* output) {
 }
 
 bool GctkStrParseSliceToInt(const char* str, size_t length, int base, int* output) {
+	char* slice = (char*)malloc(length);
+	if (slice == NULL) return false;
 
+	GctkStrCpy(slice, str, length);
+	bool result = GctkStrParseToInt(slice, base, output);
+	free(slice);
+	return result;
 }
 bool GctkStrParseSliceToFloat(const char* str, size_t length, float* output) {
+	char* slice = (char*)malloc(length);
+	if (slice == NULL) return false;
 
+	GctkStrCpy(slice, str, length);
+	bool result = GctkStrParseToFloat(slice, output);
+	free(slice);
+	return result;
 }
 
 ssize_t GctkStrFind(const char* str, char c) {

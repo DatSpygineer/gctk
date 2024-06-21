@@ -1,3 +1,5 @@
+#include <gctk/debug.h>
+
 #include "gctk/filesys.h"
 
 #define GctkMax(__x__, __max__) ((__x__) > (__max__) ? (__max__) : (__x__))
@@ -8,9 +10,12 @@
 	#include <shlobj.h>
 #else
 	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
 	#include <dirent.h>
 	#include <unistd.h>
 	#include <pwd.h>
+	#include <errno.h>
 #endif
 
 char* GctkPathGetBase(char* buffer, const char* src) {
@@ -79,7 +84,10 @@ char* GctkPathGetUserBaseDirectory(char* buffer) {
 	return SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, 0, buffer) == S_OK ? buffer : NULL;
 #else
 	struct passwd *pw = getpwuid(getuid());
-	return GctkStrCpy(buffer, pw->pw_dir, GCTK_PATH_MAX);
+	if (GctkStrCpy(buffer, pw->pw_dir, GCTK_PATH_MAX) == NULL) {
+		return NULL;
+	}
+	return GctkPathAppend(buffer, "Games");
 #endif
 }
 
@@ -110,9 +118,9 @@ bool GctkPathIsFile(const char* path) {
 
 bool GctkCreateDir(const char* path, bool recursive) {
 	if (recursive) {
-		char base[GCTK_PATH_MAX];
+		char base[GCTK_PATH_MAX] = { 0 };
 		if (GctkPathGetBase(base, path) == NULL) return false;
-		if (!GctkPathIsDirectory(path)) {
+		if (!GctkPathIsDirectory(base)) {
 			if (!GctkCreateDir(base, recursive)) {
 				return false;
 			}
@@ -121,7 +129,11 @@ bool GctkCreateDir(const char* path, bool recursive) {
 #ifdef _WIN32
 	return CreateDirectoryA(path, NULL);
 #else
-	return mkdir(path, 0666) == 0;
+	int i = mkdir(path, 0700);
+	if (i < 0) {
+		GctkLogError(GCTK_ERROR_IO_FAILURE, "Failed to create directory \"%s\": %s", path, strerror(errno));
+	}
+	return i == 0;
 #endif
 }
 bool GctkDeleteDir(const char* path, bool recursive) {
@@ -176,7 +188,7 @@ bool GctkDirIteratorCurrent(DirectoryIterator* iterator, char* path, bool* is_di
 		*is_dir = (iterator->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 	}
 #else
-	struct dirent* entry = ((struct dirent*)iterator->entry)
+	struct dirent* entry = ((struct dirent*)iterator->entry);
 	if (entry == NULL) {
 		return false;
 	}
@@ -186,7 +198,7 @@ bool GctkDirIteratorCurrent(DirectoryIterator* iterator, char* path, bool* is_di
 		return false;
 	}
 	if (is_dir != NULL) {
-		*is_dir = S_ISDIR(path);
+		*is_dir = S_ISDIR(st.st_mode);
 	}
 #endif
 	return true;
@@ -196,7 +208,7 @@ bool GctkDirIteratorNext(DirectoryIterator* iterator) {
 #ifdef _WIN32
 	return FindNextFileA(iterator->entry, &iterator->data);
 #else
-	return (iterator->entry = readdir(dir)) != NULL;
+	return (iterator->entry = readdir(iterator->dir)) != NULL;
 #endif
 }
 void GctkCloseDirIterator(DirectoryIterator* iterator) {

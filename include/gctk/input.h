@@ -83,10 +83,10 @@ GCTK_API Vec2 GctkInputGetVector(
 		const char* negative_y_action, const char* positive_y_action
 );
 
-inline bool GctkInputActionPressed(const char* action) { return GctkInputActionState(action) == GCTK_STATE_PRESSED; }
-inline bool GctkInputActionDown(const char* action) { return GctkInputActionState(action) == GCTK_STATE_DOWN; }
-inline bool GctkInputActionReleased(const char* action) { return GctkInputActionState(action) == GCTK_STATE_RELEASED; }
-inline bool GctkInputActionUp(const char* action) { return GctkInputActionState(action) == GCTK_STATE_UP; }
+GCTK_API bool GctkInputActionPressed(const char* action);
+GCTK_API bool GctkInputActionDown(const char* action);
+GCTK_API bool GctkInputActionReleased(const char* action);
+GCTK_API bool GctkInputActionUp(const char* action);
 
 #define INPUT_KEY(__key__) ((Input){ .input = (__key__), .device = GCTK_DEVICE_KEYBOARD, .device_id = 0 })
 #define INPUT_MOUSE_BTN(__btn__) ((Input){ .input = (__btn__), .device = GCTK_DEVICE_MOUSE_BUTTON, .device_id = 0 })

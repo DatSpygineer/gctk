@@ -210,6 +210,14 @@ GCTK_API Mat4 Mat4Rotate2DDeg(Mat4 mat, float angle);
 GCTK_API Mat4 Mat4CreateOrtho(float left, float right, float bottom, float top, float nearZ, float farZ);
 GCTK_API Mat4 Mat4CreatePerspective(float fov, float width, float height, float nearZ, float farZ);
 
+GCTK_API Vec3      Mat4ExtractTranslation(Mat4 mat);
+GCTK_API Vec3      Mat4ExtractScale(Mat4 mat);
+GCTK_API AxisAngle Mat4ExtractRotation(Mat4 mat);
+GCTK_API AxisAngle Mat4ExtractRotationDeg(Mat4 mat);
+GCTK_API Vec3      Mat4ExtractRotationEuler(Mat4 mat);
+GCTK_API Vec3      Mat4ExtractRotationEulerDeg(Mat4 mat);
+GCTK_API Quat      Mat4ExtractRotationQuat(Mat4 mat);
+
 #define VEC2_ZERO   VEC2(0.0f, 0.0f)
 #define VEC2_UNIT_X VEC2(1.0f, 0.0f)
 #define VEC2_UNIT_Y VEC2(0.0f, 1.0f)

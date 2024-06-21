@@ -300,6 +300,46 @@ Mat4 Mat4CreatePerspective(float fov, float width, float height, float nearZ, fl
 	return mat;
 }
 
+Vec3 Mat4ExtractTranslation(Mat4 mat) {
+	Vec3 translation;
+	glm_vec3(mat.cglm_value[3], translation.items);
+	return translation;
+}
+Vec3 Mat4ExtractScale(Mat4 mat) {
+	Vec3 scale;
+	vec3 basisX, basisY, basisZ;
+	glm_vec3_copy(mat.cglm_value[0], basisX);
+	glm_vec3_copy(mat.cglm_value[1], basisY);
+	glm_vec3_copy(mat.cglm_value[2], basisZ);
+	glm_vec3_scale(basisX, 1.0f / scale.items[0], basisX);
+	glm_vec3_scale(basisY, 1.0f / scale.items[1], basisY);
+	glm_vec3_scale(basisZ, 1.0f / scale.items[2], basisZ);
+
+	return scale;
+}
+AxisAngle Mat4ExtractRotation(Mat4 mat) {
+	return QuatToAxisAngle(Mat4ExtractRotationQuat(mat));
+}
+AxisAngle Mat4ExtractRotationDeg(Mat4 mat) {
+	return QuatToAxisAngleDeg(Mat4ExtractRotationQuat(mat));
+}
+Vec3 Mat4ExtractRotationEuler(Mat4 mat) {
+	return QuatToEuler(Mat4ExtractRotationQuat(mat));
+}
+Vec3 Mat4ExtractRotationEulerDeg(Mat4 mat) {
+	return QuatToEulerDeg(Mat4ExtractRotationQuat(mat));
+}
+Quat Mat4ExtractRotationQuat(Mat4 mat) {
+	mat3 rotation;
+	vec3 basisX, basisY, basisZ;
+	glm_mat3_copy((vec3[3]){ {basisX[0], basisX[1], basisX[2]},
+							 {basisY[0], basisY[1], basisY[2]},
+							 {basisZ[0], basisZ[1], basisZ[2]} }, rotation);
+	Quat q;
+	glm_mat3_quat(rotation, q.items);
+	return q;
+}
+
 Transform2D CreateTransform2D(Vec2 position, Vec2 origin, Vec2 scale, float angle) {
 	Transform2D transform = {
 		.position = position,
