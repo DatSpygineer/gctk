@@ -2,6 +2,7 @@
 #define GCTK_TEXTURE_H
 
 #include "gctk/common.h"
+#include "gctk/math.h"
 
 #include <GL/glew.h>
 
@@ -69,5 +70,8 @@ GCTK_API bool GctkLoadTextureFromFile(Texture* texture, const char* path);
 
 GCTK_API void GctkDeleteTexture(Texture* texture);
 GCTK_API void GctkBindTexture(const Texture* texture);
+
+GCTK_API Vec2 GctkTextureSize(const Texture* texture);
+GCTK_API Vec3 GctkTextureSize3D(const Texture* texture);
 
 #endif

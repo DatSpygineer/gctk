@@ -47,7 +47,16 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 	uint8_t* image_data = (uint8_t*)data;
 	if (format >= GCTK_INDEXED_8 && format <= GCTK_INDEXED_16_ALPHA) {
 		size_t offset = 0;
-		uint16_t palette_size = *((const uint16_t*)data); offset += 2;
+		uint16_t palette_size;
+
+		if (format >= GCTK_INDEXED_16) {
+			palette_size = *((const uint16_t*)data);
+			offset += 2;
+		} else {
+			palette_size = *((const uint8_t*)data);
+			offset++;
+		}
+
 		size_t palette_start = offset;
 		offset += palette_size * 3;
 		if (data_size - offset <= 0) {
@@ -66,6 +75,7 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 
 		const size_t pixel_size = (format == GCTK_INDEXED_8_ALPHA || format == GCTK_INDEXED_16_ALPHA) ? 4 : 3;
 		image_data = (uint8_t*)malloc(pixel_count * pixel_size);
+		memset(image_data, 0, pixel_count * pixel_size);
 
 		size_t write_offset = 0;
 		for (size_t i = 0; i < pixel_count; i++) {
@@ -311,8 +321,10 @@ bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size) {
 
 				offset += current_packet_size;
 			}
-			return GctkLoadGLTexture(texture, uncompressed_data, uncompressed_data_size, width, height, depth,
+			bool result = GctkLoadGLTexture(texture, uncompressed_data, uncompressed_data_size, width, height, depth,
 									 (ImageLoaderFlags) flags, target, format & ~GCTK_WITH_RLE);
+			free(uncompressed_data);
+			return result;
 		} else {
 			return GctkLoadGLTexture(texture, data + offset, data_size - offset, width, height, depth,
 									 (ImageLoaderFlags) flags, target, format & ~GCTK_WITH_RLE);
@@ -354,4 +366,11 @@ void GctkBindTexture(const Texture* texture) {
 	if (texture != NULL) {
 		GctkGLCall(glBindTexture(GctkGetGLTarget(texture->target), texture->id));
 	}
+}
+
+Vec2 GctkTextureSize(const Texture* texture) {
+	return VEC2(texture->width, texture->height);
+}
+Vec3 GctkTextureSize3D(const Texture* texture) {
+	return VEC3(texture->width, texture->height, texture->depth);
 }

@@ -17,7 +17,7 @@ static void update(double delta) {
 		GctkLog("Test!");
 	}
 
-	GctkRenderEnqueueSprite2D(&SPRITE, COLOR(1.0, 1.0, 1.0, 1.0), TRANSFORM);
+	GctkRenderEnqueueSprite2D(&SPRITE, COLOR_WHITE, TRANSFORM);
 }
 
 int main(int argc, char** argv) {
@@ -27,8 +27,9 @@ int main(int argc, char** argv) {
 
 	GctkSetUpdateCallback(&update);
 
-	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE, "test.png", GCTK_IMAGE_FLAG_POINT_FILTER),
-					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
+//	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE, "../test.png", GCTK_IMAGE_FLAG_POINT_FILTER),
+//					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
+	GctkAssertFatal(GctkLoadTextureFromFile(&TEXTURE, "../test.gtex"), GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
 
 	GctkAssertFatal(GctkCreateSprite(&SPRITE, GctkSprite2DDefaultShader(), &TEXTURE),
 					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite!");
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
 	TRANSFORM.position = VEC2(((float)size.x) * 0.5f - TRANSFORM.scale.x * 0.5f,
 							  ((float)size.y) * 0.5f - TRANSFORM.scale.y * 0.5f);
 
-	while (GctkUpdate());
+	while (GctkUpdate()) { }
 
 	GctkDeleteTexture(&TEXTURE);
 	GctkDeleteSprite(&SPRITE);

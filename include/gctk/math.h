@@ -77,6 +77,9 @@ typedef union Color {
 	float items[4];
 } Color;
 
+#define COLOR_WHITE ((Color){ 1.0, 1.0, 1.0, 1.0 })
+#define COLOR_BLACK ((Color){ 0.0, 0.0, 0.0, 1.0 })
+
 typedef union Color32 {
 	struct { uint8_t r, g, b, a; };
 	uint8_t items[4];
