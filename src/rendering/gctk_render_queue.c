@@ -3,6 +3,8 @@
 static RenderCall GCTK_SPRITE_QUEUE[GCTK_SPRITE_QUEUE_MAX_SIZE];
 static size_t GCTK_SPRITE_QUEUE_SIZE = 0;
 
+extern Mat4 GctkGetViewportMatrix();
+
 bool GctkRenderEnqueueSprite2D(const Sprite* sprite, Color color, Transform2D transform) {
 	if (GCTK_SPRITE_QUEUE_SIZE == GCTK_SPRITE_QUEUE_MAX_SIZE) return false;
 
@@ -11,8 +13,19 @@ bool GctkRenderEnqueueSprite2D(const Sprite* sprite, Color color, Transform2D tr
 		.sprite = sprite,
 		.color = color,
 		.transform2D = transform,
-		.is_3d = false,
-		.is_model = false
+		.type = GCTK_RENDERCALL_SPRITE_2D
+	};
+	return true;
+}
+bool GctkRenderEnqueueAnimatedSprite2D(const AnimatedSprite* sprite, Color color, Transform2D transform) {
+	if (GCTK_SPRITE_QUEUE_SIZE == GCTK_SPRITE_QUEUE_MAX_SIZE) return false;
+
+	Transform2DUpdateMatrix(&transform);
+	GCTK_SPRITE_QUEUE[GCTK_SPRITE_QUEUE_SIZE++] = (RenderCall) {
+		.animated_sprite = sprite,
+		.color = color,
+		.transform2D = transform,
+		.type = GCTK_RENDERCALL_ANIMATED_SPRITE_2D
 	};
 	return true;
 }
@@ -24,8 +37,19 @@ bool GctkRenderEnqueueSprite3D(const Sprite* sprite, Color color, Transform3D tr
 		.sprite = sprite,
 		.color = color,
 		.transform3D = transform,
-		.is_3d = true,
-		.is_model = false
+		.type = GCTK_RENDERCALL_SPRITE_3D
+	};
+	return true;
+}
+bool GctkRenderEnqueueAnimatedSprite3D(const AnimatedSprite* sprite, Color color, Transform3D transform) {
+	if (GCTK_SPRITE_QUEUE_SIZE == GCTK_SPRITE_QUEUE_MAX_SIZE) return false;
+
+	Transform3DUpdateMatrix(&transform);
+	GCTK_SPRITE_QUEUE[GCTK_SPRITE_QUEUE_SIZE++] = (RenderCall) {
+		.animated_sprite = sprite,
+		.color = color,
+		.transform3D = transform,
+		.type = GCTK_RENDERCALL_ANIMATED_SPRITE_3D
 	};
 	return true;
 }
@@ -36,8 +60,7 @@ bool GctkRenderEnqueueModel(const Mesh* mesh, Transform3D transform) {
 	GCTK_SPRITE_QUEUE[GCTK_SPRITE_QUEUE_SIZE++] = (RenderCall) {
 			.mesh = mesh,
 			.transform3D = transform,
-			.is_3d = true,
-			.is_model = true
+			.type = GCTK_RENDERCALL_MESH
 	};
 	return true;
 }
@@ -55,4 +78,31 @@ const RenderCall* GctkRenderDequeue() {
 	}
 
 	return NULL;
+}
+
+bool GctkRenderDequeueAndRender() {
+	const RenderCall* render = GctkRenderDequeue();
+	if (render == NULL) {
+		return false;
+	}
+
+	switch (render->type) {
+		case GCTK_RENDERCALL_SPRITE_2D: {
+			GctkDrawSprite(render->sprite, render->color, &render->transform2D);
+		} break;
+		case GCTK_RENDERCALL_ANIMATED_SPRITE_2D: {
+			GctkDrawAnimatedSprite(render->animated_sprite, render->color, &render->transform2D);
+		} break;
+		case GCTK_RENDERCALL_SPRITE_3D: {
+			GctkDrawSprite(render->sprite, render->color, &render->transform3D);
+		} break;
+		case GCTK_RENDERCALL_ANIMATED_SPRITE_3D: {
+			GctkDrawAnimatedSprite(render->animated_sprite, render->color, &render->transform3D);
+		} break;
+		case GCTK_RENDERCALL_MESH: {
+			GctkDrawMesh(render->mesh, render->transform3D.matrix, GctkGetViewportMatrix());
+		} break;
+		default: return false;
+	}
+	return true;
 }

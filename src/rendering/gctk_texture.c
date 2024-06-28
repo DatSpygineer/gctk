@@ -40,6 +40,10 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 	}
 
 	texture->target = target;
+	texture->width = width;
+	texture->height = height;
+	texture->depth = depth;
+	texture->format = format & ~GCTK_WITH_RLE;
 
 	GLenum gl_target = GctkGetGLTarget(target);
 	GctkGLCall(glBindTexture(gl_target, texture->id));

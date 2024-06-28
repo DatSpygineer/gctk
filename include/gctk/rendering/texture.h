@@ -57,6 +57,7 @@ typedef enum ImageLoaderFlags {
 typedef struct Texture {
 	GLuint id;
 	TextureTarget target;
+	TextureFormat format;
 	uint16_t width, height, depth;
 } Texture;
 

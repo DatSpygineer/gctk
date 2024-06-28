@@ -56,6 +56,7 @@ typedef enum GctkErrorCode {
 	GCTK_ERROR_COMPILE_SHADER,
 	GCTK_ERROR_LOAD_SHADER,
 	GCTK_ERROR_LINK_SHADER,
+	GCTK_ERROR_TEXTURE_INVALID_TARGET,
 } GctkErrorCode;
 
 typedef struct GctkDebugInfo {

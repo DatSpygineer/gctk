@@ -163,17 +163,7 @@ bool GctkUpdate() {
 	if (GCTK_RENDER_CALLBACK != NULL) GCTK_RENDER_CALLBACK(GCTK_DELTA_TIME);
 
 	while (!GctkRenderQueueIsEmpty()) {
-		const RenderCall* call = GctkRenderDequeue();
-		if (call->is_model) {
-			GctkDrawMesh(call->mesh, *(call->is_3d ?
-									(const Mat4*)&call->transform3D :
-									(const Mat4*) &call->transform2D),
-									GctkGetViewportMatrix()
-			);
-		} else {
-			GctkSpriteDraw(call->sprite, call->color,
-						   call->is_3d ? (void*) &call->transform3D : (void*) &call->transform2D);
-		}
+		GctkRenderDequeueAndRender();
 	}
 
 	if (GCTK_POST_RENDER_CALLBACK != NULL) GCTK_POST_RENDER_CALLBACK(GCTK_DELTA_TIME);

@@ -1,5 +1,11 @@
 #include "gctk/math.h"
 
+Vec2 Vec2FromVec2i(Vec2i value) {
+	return VEC2( (float)value.x, (float)value.y );
+}
+Vec2 Vec2FromVec2u(Vec2u value) {
+	return VEC2( (float)value.x, (float)value.y );
+}
 Vec2 Vec2Add(Vec2 lhs, Vec2 rhs) {
 	return VEC2( lhs.x + rhs.x, lhs.y + rhs.y );
 }
@@ -88,6 +94,9 @@ Vec3 Vec3FromVec2(Vec2 xy, float z) {
 	return VEC3( xy.x, xy.y, z );
 }
 
+Vec4 Vec4FromVec4u(Vec4u value) {
+	return VEC4( (float)value.x, (float)value.y, (float)value.z, (float)value.w );
+}
 Vec4 Vec4Add(Vec4 lhs, Vec4 rhs) {
 	return VEC4( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w );
 }

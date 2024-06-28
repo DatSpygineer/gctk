@@ -8,10 +8,21 @@
 	#define GCTK_SPRITE_QUEUE_MAX_SIZE 128
 #endif
 
+typedef enum {
+	GCTK_RENDERCALL_SPRITE_2D,
+	GCTK_RENDERCALL_ANIMATED_SPRITE_2D,
+	GCTK_RENDERCALL_SPRITE_3D,
+	GCTK_RENDERCALL_ANIMATED_SPRITE_3D,
+	GCTK_RENDERCALL_MESH
+} RenderCallType;
+
 typedef struct {
 	union {
 		struct {
-			const Sprite* sprite;
+			union {
+				const Sprite* sprite;
+				AnimatedSprite* animated_sprite;
+			};
 			Color color;
 		};
 		const Mesh* mesh;
@@ -20,16 +31,18 @@ typedef struct {
 		Transform2D transform2D;
 		Transform3D transform3D;
 	};
-	bool is_3d;
-	bool is_model;
+	RenderCallType type;
 } RenderCall;
 
 GCTK_API bool GctkRenderEnqueueSprite2D(const Sprite* sprite, Color color, Transform2D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite2D(const AnimatedSprite* sprite, Color color, Transform2D transform);
 GCTK_API bool GctkRenderEnqueueSprite3D(const Sprite* sprite, Color color, Transform3D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite3D(const AnimatedSprite* sprite, Color color, Transform3D transform);
 GCTK_API bool GctkRenderEnqueueModel(const Mesh* mesh, Transform3D transform);
 
 GCTK_API bool GctkRenderQueueIsEmpty();
 GCTK_API bool GctkRenderQueueIsFull();
 GCTK_API const RenderCall* GctkRenderDequeue();
+GCTK_API bool GctkRenderDequeueAndRender();
 
 #endif

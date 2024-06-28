@@ -2,6 +2,8 @@
 #include "gctk/str.h"
 #include "gctk/filesys.h"
 
+#include "tinyfiledialogs.h"
+
 #include <GL/glew.h>
 
 #include <time.h>
@@ -175,6 +177,8 @@ void GctkCrash(const char* crash_message_format, ...) {
 	if (GCTK_DEBUG_LOG != NULL) {
 		fprintf(GCTK_DEBUG_LOG, "%s - Game has crashed! %s\n", date, crash_message);
 	}
+
+	tinyfd_messageBox("Fatal error!", crash_message, "ok", "error", 0);
 
 	char crash_path[GCTK_PATH_MAX] = { 0 };
 	GctkGetBaseDirectory(crash_path);

@@ -116,6 +116,8 @@ typedef struct AxisAngle {
 #define COLOR_NO_ALPHA(__r, __g, __b) ((Color){ __r, __g, __b, 1.0f })
 #define COLOR32(__r, __g, __b, __a) ((Color32){ __r, __g, __b, __a })
 
+GCTK_API Vec2 Vec2FromVec2i(Vec2i value);
+GCTK_API Vec2 Vec2FromVec2u(Vec2u value);
 GCTK_API Vec2 Vec2Add(Vec2 lhs, Vec2 rhs);
 GCTK_API Vec2 Vec2Sub(Vec2 lhs, Vec2 rhs);
 GCTK_API Vec2 Vec2Mul(Vec2 lhs, Vec2 rhs);
@@ -146,6 +148,7 @@ GCTK_API float Vec3LenSqr(Vec3 vec);
 GCTK_API float Vec3Len(Vec3 vec);
 GCTK_API Vec3 Vec3FromVec2(Vec2 xy, float z);
 
+GCTK_API Vec4 Vec4FromVec4u(Vec4u value);
 GCTK_API Vec4 Vec4Add(Vec4 lhs, Vec4 rhs);
 GCTK_API Vec4 Vec4Sub(Vec4 lhs, Vec4 rhs);
 GCTK_API Vec4 Vec4Mul(Vec4 lhs, Vec4 rhs);
