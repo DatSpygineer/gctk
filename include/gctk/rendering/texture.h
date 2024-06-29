@@ -59,6 +59,8 @@ typedef struct Texture {
 	TextureTarget target;
 	TextureFormat format;
 	uint16_t width, height, depth;
+	bool clamp_r, clamp_s, clamp_t;
+	bool point_filter, mipmaps;
 } Texture;
 
 GCTK_API GLuint GctkGetGLTarget(TextureTarget target);

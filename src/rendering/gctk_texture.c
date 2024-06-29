@@ -43,6 +43,12 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 	texture->depth = depth;
 	texture->format = format & ~GCTK_WITH_RLE;
 
+	texture->clamp_r      = (flags & GCTK_IMAGE_FLAG_CLAMP_R) != 0;
+	texture->clamp_s      = (flags & GCTK_IMAGE_FLAG_CLAMP_S) != 0;
+	texture->clamp_t      = (flags & GCTK_IMAGE_FLAG_CLAMP_T) != 0;
+	texture->point_filter = (flags & GCTK_IMAGE_FLAG_POINT_FILTER) != 0;
+	texture->mipmaps      = (flags & GCTK_IMAGE_FLAG_GENERATE_MIPMAPS) != 0;
+
 	GLenum gl_target = GctkGetGLTarget(target);
 	GctkGLCall(glBindTexture(gl_target, texture->id));
 
@@ -301,8 +307,14 @@ bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size) {
 				} break;
 			}
 			size_t uncompressed_data_size = (width * GctkMin(height, 1) * GctkMin(depth, 1)) * stride;
-			size_t palette_size = (format >= GCTK_INDEXED_8 && format <= GCTK_INDEXED_16_ALPHA) ?
-					(*((uint16_t*)(data + offset))) : 0;
+			uint16_t palette_size;
+			if (format >= GCTK_INDEXED_16) {
+				palette_size = *((const uint16_t*)data);
+				offset += 2;
+			} else {
+				palette_size = *((const uint8_t*)data);
+				offset++;
+			}
 			uint8_t* uncompressed_data = (uint8_t*)malloc(uncompressed_data_size);
 
 			size_t write_offset = 0;
