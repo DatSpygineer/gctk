@@ -31,12 +31,10 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 		return false;
 	}
 
+	GctkGLCall(glGenTextures(1, &texture->id));
 	if (texture->id == 0) {
-		GctkGLCall(glGenTextures(1, &texture->id));
-		if (texture->id == 0) {
-			GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to generate GL texture");
-			return false;
-		}
+		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to generate GL texture");
+		return false;
 	}
 
 	texture->target = target;

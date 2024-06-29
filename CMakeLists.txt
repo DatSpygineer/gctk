@@ -38,11 +38,14 @@ add_library(tinyfiledialogs STATIC
 	${CMAKE_CURRENT_LIST_DIR}/thirdparty/tinyfiledialogs/tinyfiledialogs.c
 )
 target_include_directories(tinyfiledialogs PUBLIC ${CMAKE_CURRENT_LIST_DIR}/thirdparty/tinyfiledialogs)
+set_target_properties     (tinyfiledialogs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library               (gctk SHARED ${GCTK_SOURCES})
 target_link_libraries     (gctk PUBLIC OpenGL::GL glfw GLEW::GLEW cglm_headers tinyfiledialogs)
 target_include_directories(gctk PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_compile_definitions(gctk PRIVATE -DGCTK_EXPORTS)
+set_target_properties     (gctk PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 
 if (GCTK_ENABLE_LUA)
 	target_link_libraries     (gctk PUBLIC ${LUAJIT_LIBRARIES}  )

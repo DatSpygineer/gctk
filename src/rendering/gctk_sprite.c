@@ -23,7 +23,7 @@ const char* GCTK_SPRITE2D_FRAGMENT =
 		"in vec2 UV;\n"
 		"out vec4 COLOR;\n"
 		"uniform sampler2D TEXTURE;\n"
-		"uniform vec4 COLOR_TINT;\n"
+		"uniform vec4 COLOR_TINT = vec4(1.0);\n"
 		"\n"
 		"void main() {\n"
 		"\tCOLOR = texture(TEXTURE, UV) * COLOR_TINT;\n"
@@ -68,9 +68,9 @@ bool GctkDrawSpriteGeneric(const Sprite* sprite, Color color, Mat4 transform, Ma
 	GctkSetShaderUniformColor(sprite->mesh.shader, "COLOR_TINT", color);
 	GctkSetShaderUniformTexture(sprite->mesh.shader, "TEXTURE", sprite->texture);
 
-	glBindTexture(sprite->texture->target, 0);
-
 	GctkDrawMesh(&sprite->mesh, transform, view);
+
+	glBindTexture(sprite->texture->target, 0);
 	return true;
 }
 

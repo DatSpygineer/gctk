@@ -327,7 +327,8 @@ bool GctkSetShaderUniformViewport3D(const Shader* shader, const char* name, cons
 bool GctkSetShaderUniformTexture(const Shader* shader, const char* name, const Texture* value) {
 	if (shader == NULL) return false;
 
-	GLint id = (GLint)((value == NULL) ? 0 : value->id) - 1;
+	glActiveTexture(GL_TEXTURE0 + value->id);
+	GLint id = value == NULL ? 0 : value->id;
 	if (id < 0) {
 		GctkLogError(GCTK_ERROR_GL_RUNTIME, "Attempt to assign null texture!");
 		return false;
