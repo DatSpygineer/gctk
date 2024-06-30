@@ -16,6 +16,8 @@ static GctkErrorCode GCTK_ERROR_CODE = GCTK_OK;
 static char GCTK_ERROR_MESSAGE[GCTK_MESSAGE_LOG_BUFFER_SIZE] = { 0 };
 static char GCTK_LOG_PATH[GCTK_PATH_MAX] = { 0 };
 
+static MessageCallbackFn GCTK_DEBUG_MESSAGE_CALLBACK = NULL;
+
 extern void GctkGetBaseDirectory(char* buffer);
 
 bool GctkSetupDebugLogger() {
@@ -108,9 +110,17 @@ void GctkDispatchDebugMessageV(GctkDebugMessageType type, GctkErrorCode error_co
 			debug_info.file, debug_info.line, debug_info.func, message);
 #endif
 
+	if (GCTK_DEBUG_MESSAGE_CALLBACK != NULL) {
+		GCTK_DEBUG_MESSAGE_CALLBACK(type, message, debug_info);
+	}
+
 	if (type == GCTK_MESSAGE_FATAL) {
 		GctkCrash("Engine error: %s", GCTK_ERROR_MESSAGE);
 	}
+}
+
+void GctkSetMessageCallback(MessageCallbackFn callback) {
+	GCTK_DEBUG_MESSAGE_CALLBACK = callback;
 }
 
 bool GctkDispatchDebugAssert(bool expression_result, const char* expression_str, GctkDebugInfo debug_info,

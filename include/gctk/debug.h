@@ -65,6 +65,8 @@ typedef struct GctkDebugInfo {
 	size_t line;
 } GctkDebugInfo;
 
+typedef void (*MessageCallbackFn)(GctkDebugMessageType, const char*, GctkDebugInfo);
+
 #define GCTK_GET_DEBUG_INFO ((GctkDebugInfo){ __FILE__, __func__, __LINE__ })
 
 GCTK_API bool GctkSetupDebugLogger();
@@ -77,6 +79,7 @@ GCTK_API void GctkDispatchDebugMessage(GctkDebugMessageType type, GctkErrorCode 
 GCTK_API void GctkDispatchDebugMessageV(GctkDebugMessageType type, GctkErrorCode error_code, GctkDebugInfo debug_info,
 										const char* format, va_list args);
 
+GCTK_API void GctkSetMessageCallback(MessageCallbackFn callback);
 
 #ifdef GCTK_ALLOW_LOG_WARNING
 	#define GctkLog(__message__, ...)     GctkDispatchDebugMessage(GCTK_MESSAGE_INFO, GCTK_OK, GCTK_GET_DEBUG_INFO, __message__, ##__VA_ARGS__)
