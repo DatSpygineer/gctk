@@ -244,3 +244,16 @@ Vec2i GctkGetWindowPos() {
 	glfwGetWindowPos(GCTK_WINDOW, &x, &y);
 	return (Vec2i){ x, y };
 }
+
+void GctkSetTitle(const char* title) {
+#ifndef NDEBUG
+	char debug_title[1025] = { 0 };
+	snprintf(debug_title, 1024, "%s | DEBUG | Gctk v%s | OpenGL v%s", title,
+			 GCTK_ENGINE_VERSION_STRING,
+			 glGetString(GL_VERSION)
+	);
+	glfwSetWindowTitle(GCTK_WINDOW, debug_title);
+#else
+	glfwSetWindowTitle(GCTK_WINDOW, title);
+#endif
+}

@@ -49,4 +49,6 @@ GCTK_API void* GctkGetWindowHandle();
 GCTK_API Vec2i GctkGetWindowSize();
 GCTK_API Vec2i GctkGetWindowPos();
 
+GCTK_API void GctkSetTitle(const char* title);
+
 #endif
