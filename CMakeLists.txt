@@ -6,6 +6,7 @@ project(gctk_static C)
 project(gctk C)
 
 option(GCTK_ENABLE_LUA "Should GCTk use Lua bindings" OFF)
+option(GCTK_ENABLE_FLUIDSYNTH "Should GCTk link fluidsynth" OFF)
 
 set(CMAKE_C_STANDARD 17)
 
@@ -31,6 +32,12 @@ if (GCTK_ENABLE_LUA)
 	set(GCTK_SOURCES ${GCTK_SOURCES} ${GCTK_LUA_SOURCES})
 endif()
 
+if (GCTK_ENABLE_FLUIDSYNTH)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(FluidSynth REQUIRED fluidsynth)
+	set(GCTK_SOURCES ${GCTK_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/src/audio/gctk_midi.c)
+endif()
+
 add_subdirectory(thirdparty/cglm cglm)
 
 add_library(tinyfiledialogs STATIC
@@ -46,11 +53,15 @@ target_include_directories(gctk PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_compile_definitions(gctk PRIVATE -DGCTK_EXPORTS)
 set_target_properties     (gctk PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-
 if (GCTK_ENABLE_LUA)
 	target_link_libraries     (gctk PUBLIC ${LUAJIT_LIBRARIES}  )
 	target_include_directories(gctk PUBLIC ${LUAJIT_INCLUDE_DIR})
 	target_compile_definitions(gctk PUBLIC -DGCTK_ENABLE_LUA=1  )
+endif()
+if (GCTK_ENABLE_FLUIDSYNTH)
+	target_link_libraries     (gctk PUBLIC ${FluidSynth_LIBRARIES}   )
+	target_include_directories(gctk PUBLIC ${FluidSynth_INCLUDE_DIRS})
+	target_compile_definitions(gctk PUBLIC -DGCTK_ENABLE_FLUIDSYNTH=1)
 endif()
 
 add_library               (gctk_static STATIC ${GCTK_SOURCES})
@@ -62,6 +73,11 @@ if (GCTK_ENABLE_LUA)
 	target_link_libraries     (gctk_static PUBLIC ${LUAJIT_LIBRARIES}  )
 	target_include_directories(gctk_static PUBLIC ${LUAJIT_INCLUDE_DIR})
 	target_compile_definitions(gctk_static PUBLIC -DGCTK_ENABLE_LUA=1  )
+endif()
+if (GCTK_ENABLE_FLUIDSYNTH)
+	target_link_libraries     (gctk_static PUBLIC ${FluidSynth_LIBRARIES}   )
+	target_include_directories(gctk_static PUBLIC ${FluidSynth_INCLUDE_DIRS})
+	target_compile_definitions(gctk_static PUBLIC -DGCTK_ENABLE_FLUIDSYNTH=1)
 endif()
 
 add_library(gctk::shared ALIAS gctk)
