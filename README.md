@@ -22,7 +22,7 @@ git clone https://github.com/DatSpygineer/gctk --recursive
 ```
 
 ### Windows:
-You need to install VCPKG for dependencies. The project already contains a toolchain file to find VCPKG.
+You need to install VCPKG for dependencies. The project already contains a toolchain file to find VCPKG, make sure the base directory of VCPKG is added to the PATH variable.
 Make sure you have the required dependencies installed.
 
 Create a build folder and enter
