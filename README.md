@@ -7,25 +7,12 @@ The project is going under the name "cgctk", because this is the C version.
 
 This project is in a very early stage, it is not feature complete and breaking updates may occur.
 
-## Features:
-
-* ❌ Settings
-* ✔️ Basic 2D/3D mesh rendering
-* ✔️ Rendering of 2D sprites
-* ❌ Tilemap rendering
-* ❌ Sprite animations
-* ❌ Sprite batching
-* ✔️ Input system
-* ❌ ECS and scene format
-* ❌ Fully featured lua bindings
-* ❌ Editor application
-* ❌ Documentations
-
 ## Dependencies:
 - OpenGL
 - GLFW
 - GLEW
 - LuaJIT
+- cJSON
 
 ### Submodules:
 - cglm

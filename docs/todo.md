@@ -1,0 +1,54 @@
+# To do list
+## Game Engine:
+- Basic Json configuration for window
+  - [x] Implemented
+  - [x] Tested
+- Sprite Rendering
+  - [x] Implemented
+  - [x] Tested
+- Animated Sprites
+  - [x] Implemented
+  - [ ] Tested
+- Tilemaps
+  - [ ] Implemented
+  - [ ] Tested
+- Inputs
+  - [x] Implemented
+  - [ ] Tested (Note: Partially tested)
+- ECS
+  - [ ] Implemented
+  - [ ] Tested
+- Audio
+  - [ ] Implemented
+  - [ ] Tested
+- Asset Pipeline
+  - [ ] Implemented
+  - [ ] Tested
+- Lua scripting
+  - [ ] Implemented
+  - [ ] Tested
+- Fully customizable config system
+  - [ ] Implemented
+  - [ ] Tested
+- GUI Framework
+  - [ ] Implemented
+  - [ ] Tested
+- Material system
+  - [ ] Implemented
+  - [ ] Tested
+- Models
+  - [ ] Implemented
+  - [ ] Tested
+- Skeletal animations
+  - [ ] Implemented
+  - [ ] Tested
+## Tools:
+- Texture Tools
+  - [ ] Implemented
+  - [ ] Tested
+- Asset Tools
+  - [ ] Implemented
+  - [ ] Tested
+- Editor
+  - [ ] Implemented
+  - [ ] Tested
