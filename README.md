@@ -2,9 +2,6 @@
 
 GCTk is a library for making games written in C with Lua bindings. This library uses OpenGL 4.6 for rendering.
 
-
-The project is going under the name "cgctk", because this is the C version.
-
 This project is in a very early stage, it is not feature complete and breaking updates may occur.
 
 ## Dependencies:
