@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -9,6 +11,9 @@
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 extern "C" {
 	#include "tinyfiledialogs.h"
@@ -44,6 +49,7 @@ static int  SplitMode;
 static bool Changes = false;
 static int MipMapPreview = 0, MipMapPreview_Prev = 0;
 static int FramePreview = 0, FramePreview_Prev = 0;
+static int JpgQuality = 100;
 
 static Texture TEXTURE = { };
 static Sprite SPRITE = { };
@@ -59,7 +65,7 @@ static Transform2D TRANSFORM = {
 static Vec2i FrameSize_Prev;
 static Vec2i FrameSize;
 static int ImageSize[3] = { 0 };
-static std::string TexturePath = "";
+static fs::path TexturePath = "";
 
 static const char* TargetNames[] = {
 	"1D", "2D", "3D", "Cubemap",
@@ -95,6 +101,15 @@ enum class TextureFormatSelection : int {
 	Indexed8,
 	Indexed16,
 	Rgb
+};
+
+enum class ImageFileFormat {
+	Invalid,
+	GTex,
+	Png,
+	Jpg,
+	Bmp,
+	Tga
 };
 
 static TextureTargetSelection TargetSelect = TextureTargetSelection::Target2D;
@@ -164,16 +179,100 @@ static int MessageBox(const std::string& title, const std::string& message, Mess
 	return tinyfd_messageBox(title.c_str(), message.c_str(), btn_cstr, type_cstr, default_button);
 }
 
-static std::vector<uint8_t> GetImageData() {
-	std::vector<uint8_t> data;
+static GLsizei GetImageData(std::vector<uint8_t>& result) {
+	GLsizei image_size = GctkMin(TEXTURE.width, 1) * GctkMin(TEXTURE.height, 1) * GctkMin(TEXTURE.depth, 1);
+	GLenum gl_format = GL_RGBA;
+	switch (TEXTURE.format) {
+		case GCTK_GRAYSCALE: {
+			gl_format = GL_RED;
+		} break;
+		case GCTK_GRAYSCALE_ALPHA: {
+			gl_format = GL_RG;
+			image_size *= 2;
+		} break;
+		case GCTK_RGB:
+		case GCTK_INDEXED_16:
+		case GCTK_INDEXED_8: {
+			gl_format = GL_RGB;
+			image_size *= 3;
+		} break;
+		default:
+		case GCTK_RGBA:
+		case GCTK_INDEXED_16_ALPHA:
+		case GCTK_INDEXED_8_ALPHA: {
+			gl_format = GL_RGBA;
+			image_size *= 4;
+		} break;
+	}
 
-	return data;
+	result = { };
+	result.reserve(image_size);
+
+	GctkGLCall(glGetTextureImage(TEXTURE.id, 0, gl_format, GL_UNSIGNED_BYTE, image_size, result.data()));
+	return image_size;
+}
+
+static bool SaveImageAs(const fs::path& path, ImageFileFormat file_format) {
+	std::vector<uint8_t> data;
+	if (GetImageData(data) > 0) {
+		int stride;
+		switch (TEXTURE.format) {
+			case GCTK_GRAYSCALE: {
+				stride = 1;
+			} break;
+			case GCTK_GRAYSCALE_ALPHA: {
+				stride = 2;
+			} break;
+			case GCTK_RGB:
+			case GCTK_INDEXED_16:
+			case GCTK_INDEXED_8: {
+				stride = 3;
+			} break;
+			default:
+			case GCTK_RGBA:
+			case GCTK_INDEXED_16_ALPHA:
+			case GCTK_INDEXED_8_ALPHA: {
+				stride = 4;
+			} break;
+		}
+
+		switch (file_format) {
+			case ImageFileFormat::GTex: {
+				
+			} break;
+			case ImageFileFormat::Png: {
+				stbi_write_png(path.string().c_str(), TEXTURE.width, TEXTURE.height, stride, data.data(), stride);
+			} break;
+			case ImageFileFormat::Jpg: {
+				stbi_write_jpg(path.string().c_str(), TEXTURE.width, TEXTURE.height, stride, data.data(), JpgQuality);
+			} break;
+			case ImageFileFormat::Bmp: {
+				stbi_write_bmp(path.string().c_str(), TEXTURE.width, TEXTURE.height, stride, data.data());
+			} break;
+			case ImageFileFormat::Tga: {
+				stbi_write_tga(path.string().c_str(), TEXTURE.width, TEXTURE.height, stride, data.data());
+			} break;
+			default: return false;
+		}
+
+		return true;
+	}
+
+	MessageBox("Error", "Failed to get image data!", MessageBoxType::Error);
+	return false;
 }
 
 int main(int argc, char** argv) {
 	if (!GctkInit(argc, argv, "GTexTools", "Gctk", Version { 1, 0, 0, GCTK_VERSION_ALPHA })) {
 		return 1;
 	}
+
+	GctkSetMessageCallback([](GctkDebugMessageType message_type, const char* message, GctkDebugInfo debug_info) {
+		static_cast<void>(debug_info);
+		if (message_type == GCTK_MESSAGE_ERROR) {
+			MessageBox("Engine Error!", "Engine error has occured: " + std::string(message), MessageBoxType::Error);
+		}
+	});
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -239,10 +338,22 @@ int main(int argc, char** argv) {
 				}
 				ImGui::BeginDisabled(TEXTURE.id == 0 || SPRITE.mesh.vbo == 0);
 				if (ImGui::MenuItem("Save Texture")) {
-					// TODO: Implement save
+					if (TexturePath.extension() != ".gtex") {
+						auto path = SaveFile("Save texture file", "GTex texture", {  "*.gtex" });
+						if (!path.empty()) {
+							TexturePath = path;
+							SaveImageAs(TexturePath, ImageFileFormat::GTex);
+						}
+					} else {
+						SaveImageAs(TexturePath, ImageFileFormat::GTex);
+					}
 				}
 				if (ImGui::MenuItem("Save Texture as..")) {
-					// TODO: Implement save as
+					auto path = SaveFile("Save texture file", "GTex texture", {  "*.gtex" });
+					if (!path.empty()) {
+						TexturePath = path;
+						SaveImageAs(TexturePath, ImageFileFormat::GTex);
+					}
 				}
 				if (ImGui::MenuItem("Close texture")) {
 					if (Changes) {
@@ -275,7 +386,7 @@ int main(int argc, char** argv) {
 						}
 
 						auto path = results.front();
-						if (std::string(".png.jpg.jpeg.bmp.tga").find(fs::path(path).extension())) {
+						if (std::string(".png.jpg.jpeg.bmp.tga").find(fs::path(path).extension().string())) {
 							MessageBox("Error", "Unsupported extension \"" + fs::path(path).extension().string() +
 								"\", expected: \"*.png\", \"*.jpg\", \"*.jpeg\", \"*.bmp\", \"*.tga\"",
 								MessageBoxType::Error);
@@ -309,7 +420,29 @@ int main(int argc, char** argv) {
 				}
 				ImGui::BeginDisabled(TEXTURE.id == 0 || SPRITE.mesh.vbo == 0);
 				if (ImGui::MenuItem("Export image..")) {
-					// TODO: Implement export
+					auto path = SaveFile("Save image file", "Image file", {  "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tga" });
+					if (!path.empty()) {
+						ImageFileFormat format;
+						auto ext = fs::path(path).extension().string();
+						if (ext == ".png") {
+							format = ImageFileFormat::Png;
+						} else if (ext == ".jpg" || ext == ".jpeg") {
+							format = ImageFileFormat::Jpg;
+						} else if (ext == ".bmp") {
+							format = ImageFileFormat::Bmp;
+						} else if (ext == ".tga") {
+							format = ImageFileFormat::Tga;
+						} else if (ext == ".gtex") {
+							format = ImageFileFormat::GTex;
+						} else {
+							MessageBox("Error", "Unsupported extension \"" + ext + "\"", MessageBoxType::Error);
+							format = ImageFileFormat::Invalid;
+						}
+
+						if (format != ImageFileFormat::Invalid) {
+							SaveImageAs(path, format);
+						}
+					}
 				}
 				ImGui::EndDisabled();
 				ImGui::Separator();

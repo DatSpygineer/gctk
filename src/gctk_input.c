@@ -655,7 +655,7 @@ bool GctkLoadInputMap() {
 			} else {
 				i = GctkStrFindLast(line_trimmed, ']');
 			}
-			GctkStrNCpy(key, line_trimmed + 1, 64, i - 1);
+			GctkStrCpySlice(key, line_trimmed + 1, 64, i - 1);
 		} else {
 			if (action_count >= 64) {
 				GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Failed to load input \"%s\": Input limit reached!", key);

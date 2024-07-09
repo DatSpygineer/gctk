@@ -4,12 +4,20 @@
 #include "gctk/debug.h"
 #include "gctk/input.h"
 #include "gctk/filesys.h"
+#include "gctk/collections.h"
 #include "gctk/rendering/viewport.h"
-#include "gctk/rendering/sprite.h"
 #include "gctk/rendering/render_queue.h"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#include <cjson/cJSON.h>
+
+typedef struct {
+	Vec2i resolution;
+	bool fullscreen;
+	int monitor_idx;
+} GameConfig;
 
 static GLFWwindow* GCTK_WINDOW = NULL;
 
@@ -27,6 +35,8 @@ static void (*GCTK_CLOSE_CALLBACK)() = NULL;
 static double GCTK_LAST_TIME = 0, GCTK_DELTA_TIME = 0;
 
 static Color GCTK_BACKGROUND_COLOR = COLOR(0.25f, 0.5f, 1.0f, 1.0f);
+
+static GameConfig GCTK_CONFIG;
 
 static void GctkWindowResizeCallback(GLFWwindow* window, int width, int height) {
 	GctkUpdateViewport(width, height);
@@ -75,11 +85,80 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	GctkStrCpy(GCTK_AUTHOR, author, 512);
 	GctkPathGetBase(GCTK_BASE_DIR, argv[0]);
 
-	char base_path[GCTK_PATH_MAX] = { 0 };
-	GctkGetUserDirectory(base_path);
-	if (!GctkPathIsDirectory(base_path) && !GctkCreateDir(base_path, true)) {
-		GctkLogFatal(GCTK_ERROR_IO_FAILURE, "Failed to create user directory \"%s\"", base_path);
+	char path_temp[GCTK_PATH_MAX] = { 0 };
+	GctkGetUserDirectory(path_temp);
+	if (!GctkPathIsDirectory(path_temp) && !GctkCreateDir(path_temp, true)) {
+		GctkLogFatal(GCTK_ERROR_IO_FAILURE, "Failed to create user directory \"%s\"", path_temp);
 		return false;
+	}
+
+	memset(path_temp, 0, GCTK_PATH_MAX);
+	GctkGetUserDirectory(path_temp);
+	GctkPathAppend(path_temp, "settings.json");
+	if (GctkPathExists(path_temp)) {
+		FILE* f = GctkOpenFile(path_temp, GCTK_FILEMODE_READ, GCTK_FILE_OPEN);
+		const size_t size = GctkFileSize(f);
+		char* p = (char*)malloc(size + 1);
+		memset(p, 0, size + 1);
+		GctkFileRead(f, p, size, sizeof(char));
+		cJSON* json = cJSON_Parse(p);
+		free(p);
+		fclose(f);
+		if (json == NULL) {
+			GctkLogFatal(GCTK_ERROR_PARSE_FAILED, "Failed to read config file \"%s\"", path_temp);
+			return false;
+		}
+
+		const cJSON* resolution = cJSON_GetObjectItem(json, "resolution");
+		if (resolution != NULL && cJSON_IsArray(resolution)) {
+			const cJSON* x = cJSON_GetArrayItem(resolution, 0);
+			const cJSON* y = cJSON_GetArrayItem(resolution, 1);
+			if (!cJSON_IsNumber(x) || !cJSON_IsNumber(y)) {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get window resolution! Expected an array of 2 numbers!");
+				GCTK_CONFIG.resolution = VEC2I(1360, 768);
+			} else {
+				GCTK_CONFIG.resolution = VEC2I((int)x->valuedouble, (int)y->valuedouble);
+			}
+		} else {
+			GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get window resolution! Expected an array of 2 numbers!");
+			GCTK_CONFIG.resolution = VEC2I(1360, 768);
+		}
+
+		const cJSON* fullscreen = cJSON_GetObjectItem(json, "fullscreen");
+		if (fullscreen) {
+			if (cJSON_IsBool(fullscreen)) {
+				GCTK_CONFIG.fullscreen = fullscreen->valueint > 0;
+			} else if (cJSON_IsNumber(fullscreen)) {
+				GCTK_CONFIG.fullscreen = fullscreen->valuedouble > 0;
+			} else {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get fullscreen! Expected a boolean value!");
+				GCTK_CONFIG.fullscreen = false;
+			}
+		} else {
+			GctkLogWarn("Optional settings entry \"fullscreen\" is not present. Defaulting to false.");
+			GCTK_CONFIG.fullscreen = false;
+		}
+
+		const cJSON* monitor_idx = cJSON_GetObjectItem(json, "monitor_idx");
+		if (monitor_idx) {
+			if (cJSON_IsNumber(fullscreen)) {
+				GCTK_CONFIG.monitor_idx = (int)monitor_idx->valuedouble;
+			} else {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get monitor_idx! Expected a numeric value!");
+				GCTK_CONFIG.monitor_idx = -1;
+			}
+		} else {
+			GctkLogWarn("Optional settings entry \"monitor_idx\" is not present. Defaulting to -1.");
+			GCTK_CONFIG.monitor_idx = -1;
+		}
+
+		cJSON_Delete(json);
+	} else {
+		GCTK_CONFIG = (GameConfig) {
+			.resolution = VEC2I(1360, 768),
+			.fullscreen = false,
+			.monitor_idx = -1
+		};
 	}
 
 	glfwSetErrorCallback(&GctkGlfwErrorCallback);
@@ -93,14 +172,11 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 		return false;
 	}
 
-	int w = 1360;
-	int h = 768;
-
 	glfwDefaultWindowHints();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GCTK_WINDOW = glfwCreateWindow(w, h, name, NULL, NULL);
+	GCTK_WINDOW = glfwCreateWindow(GCTK_CONFIG.resolution.x, GCTK_CONFIG.resolution.y, name, NULL, NULL);
 	if (GCTK_WINDOW == NULL) {
 		const char* error_desc;
 		int code = glfwGetError(&error_desc);
@@ -141,7 +217,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 
 	GctkDebugEnableGLDebug();
 
-	GctkSetupViewport2D(w, h, VEC2_ZERO, -100, 100);
+	GctkSetupViewport2D(GCTK_CONFIG.resolution.x, GCTK_CONFIG.resolution.y, VEC2_ZERO, -100, 100);
 
 	return true;
 }
@@ -173,7 +249,109 @@ bool GctkUpdate() {
 
 	return !glfwWindowShouldClose(GCTK_WINDOW);
 }
+
+bool GctkLoadSettings() {
+	char path[GCTK_PATH_MAX] = { 0 };
+	GctkGetUserDirectory(path);
+	GctkPathAppend(path, "settings.json");
+	if (GctkPathExists(path)) {
+		FILE* f = GctkOpenFile(path, GCTK_FILEMODE_READ, GCTK_FILE_OPEN);
+		const size_t size = GctkFileSize(f);
+		char* p = (char*)malloc(size + 1);
+		memset(p, 0, size + 1);
+		GctkFileRead(f, p, size, sizeof(char));
+		cJSON* json = cJSON_Parse(p);
+		free(p);
+		fclose(f);
+		if (json == NULL) {
+			GctkLogFatal(GCTK_ERROR_PARSE_FAILED, "Failed to read config file \"%s\"", path);
+			return false;
+		}
+
+		const cJSON* resolution = cJSON_GetObjectItem(json, "resolution");
+		if (resolution != NULL && cJSON_IsArray(resolution)) {
+			const cJSON* x = cJSON_GetArrayItem(resolution, 0);
+			const cJSON* y = cJSON_GetArrayItem(resolution, 1);
+			if (!cJSON_IsNumber(x) || !cJSON_IsNumber(y)) {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get window resolution! Expected an array of 2 numbers!");
+				GCTK_CONFIG.resolution = VEC2I(1360, 768);
+			} else {
+				GCTK_CONFIG.resolution = VEC2I((int)x->valuedouble, (int)y->valuedouble);
+			}
+		} else {
+			GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get window resolution! Expected an array of 2 numbers!");
+			GCTK_CONFIG.resolution = VEC2I(1360, 768);
+		}
+
+		const cJSON* fullscreen = cJSON_GetObjectItem(json, "fullscreen");
+		if (fullscreen) {
+			if (cJSON_IsBool(fullscreen)) {
+				GCTK_CONFIG.fullscreen = fullscreen->valueint > 0;
+			} else if (cJSON_IsNumber(fullscreen)) {
+				GCTK_CONFIG.fullscreen = fullscreen->valuedouble > 0;
+			} else {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get fullscreen! Expected a boolean value!");
+				GCTK_CONFIG.fullscreen = false;
+			}
+		} else {
+			GctkLogWarn("Optional settings entry \"fullscreen\" is not present. Defaulting to false.");
+			GCTK_CONFIG.fullscreen = false;
+		}
+
+		const cJSON* monitor_idx = cJSON_GetObjectItem(json, "monitor_idx");
+		if (monitor_idx) {
+			if (cJSON_IsNumber(fullscreen)) {
+				GCTK_CONFIG.monitor_idx = (int)monitor_idx->valuedouble;
+			} else {
+				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get monitor_idx! Expected a numeric value!");
+				GCTK_CONFIG.monitor_idx = -1;
+			}
+		} else {
+			GctkLogWarn("Optional settings entry \"monitor_idx\" is not present. Defaulting to -1.");
+			GCTK_CONFIG.monitor_idx = -1;
+		}
+
+		GctkSetWindowSize(VEC2I(GCTK_CONFIG.resolution.x, GCTK_CONFIG.resolution.y));
+		GctkSetWindowFullscreen(GCTK_CONFIG.fullscreen, GCTK_CONFIG.monitor_idx);
+
+		cJSON_Delete(json);
+		return true;
+	}
+
+	return false;
+}
+bool GctkWriteSettings() {
+	char path[GCTK_PATH_MAX] = { 0 };
+	GctkGetUserDirectory(path);
+	GctkPathAppend(path, "settings.json");
+
+	Vec2i w_size = GctkGetWindowSize();
+
+	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_WRITE, GCTK_FILE_OPEN_OR_CREATE);
+	if (f == NULL) {
+		return false;
+	}
+
+	fprintf(f, "{\n"
+			   "\t\"resolution\": [ %d, %d ],\n"
+			   "\t\"fullscreen\": %s,\n"
+			   "\t\"monitor_idx\": %d\n"
+			   "}\n",
+		w_size.x, w_size.y,
+		GCTK_CONFIG.fullscreen ? "true" : "false",
+		GCTK_CONFIG.monitor_idx
+	);
+	fclose(f);
+	return true;
+}
+
 void GctkDispose() {
+	GctkWriteSettings();
+
+#if !defined(NDEBUG) || defined(GCTK_ALLOW_MEMORY_LOG)
+	GctkReportMemoryLeakCount();
+#endif
+
 	if (GCTK_CLOSE_CALLBACK != NULL) GCTK_CLOSE_CALLBACK();
 
 	GctkSprite2DDeleteDefaultShader();
@@ -234,6 +412,36 @@ void* GctkGetWindowHandle() {
 	return (void*)GCTK_WINDOW;
 }
 
+void GctkSetWindowPos(Vec2i pos) {
+	glfwSetWindowPos(GCTK_WINDOW, pos.x, pos.y);
+}
+void GctkSetWindowSize(Vec2i size) {
+	glfwSetWindowSize(GCTK_WINDOW, size.x, size.y);
+}
+void GctkSetWindowFullscreen(bool fullscreen, int monitor_idx) {
+	if (fullscreen) {
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		if (monitor_idx >= 0) {
+			int count;
+			GLFWmonitor** monitors = glfwGetMonitors(&count);
+			if (monitor_idx < count) {
+				monitor = monitors[monitor_idx];
+			} else {
+				monitor_idx = -1;
+			}
+		}
+
+		int x, y, w, h;
+		glfwGetMonitorWorkarea(monitor, &x, &y, &w, &h);
+		glfwSetWindowMonitor(GCTK_WINDOW, monitor, x, y, w, h, GLFW_DONT_CARE);
+	} else {
+		Vec2i size = GctkGetWindowSize();
+		glfwSetWindowMonitor(GCTK_WINDOW, NULL, 0, 0, size.x, size.y, GLFW_DONT_CARE);
+	}
+	GCTK_CONFIG.fullscreen = fullscreen;
+	GCTK_CONFIG.monitor_idx = monitor_idx;
+}
+
 Vec2i GctkGetWindowSize() {
 	int w, h;
 	glfwGetFramebufferSize(GCTK_WINDOW, &w, &h);
@@ -243,6 +451,12 @@ Vec2i GctkGetWindowPos() {
 	int x, y;
 	glfwGetWindowPos(GCTK_WINDOW, &x, &y);
 	return (Vec2i){ x, y };
+}
+int GctkGetWindowMonitorIdx() {
+	return GCTK_CONFIG.monitor_idx;
+}
+bool GctkIsWindowFullscreen() {
+	return GCTK_CONFIG.fullscreen;
 }
 
 void GctkSetTitle(const char* title) {

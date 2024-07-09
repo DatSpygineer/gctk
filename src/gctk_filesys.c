@@ -24,7 +24,7 @@ char* GctkPathGetBase(char* buffer, const char* src) {
 		return GctkStrCpy(buffer, src, GCTK_PATH_MAX);
 	}
 
-	return GctkStrNCpy(buffer, src, GCTK_PATH_MAX, p - src);
+	return GctkStrCpySlice(buffer, src, GCTK_PATH_MAX, p - src);
 }
 char* GctkPathJoin(char* buffer, const char* lhs, const char* rhs) {
 	return GctkPathVJoin(buffer, 2, lhs, rhs);
@@ -326,7 +326,7 @@ FILE* GctkOpenFile(const char* path, GctkFileMode mode, GctkFileCreationFlag fla
 		} break;
 		case GCTK_FILE_OPEN_OR_CREATE: {
 			if (mode == GCTK_FILEMODE_WRITE) {
-				mode_s[0] = '+';
+				mode_s[offset++] = '+';
 			}
 		} break;
 	}
@@ -359,8 +359,52 @@ size_t GctkFileReadToEnd(FILE* file, void* dest, size_t max_buffer_size) {
 	const size_t size = GctkFileSize(file);
 	return GctkFileRead(file, dest, GctkMax(size, max_buffer_size), sizeof(uint8_t));
 }
-size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size) {
-	return fwrite(data, item_size, write_count, file);
+
+size_t GctkFileRead_u8 (FILE* file, uint8_t* output) {
+	return fread(output, sizeof(uint8_t), 1, file);
+}
+size_t GctkFileRead_u16(FILE* file, uint16_t* output) {
+	return fread(output, sizeof(uint16_t), 1, file);
+}
+size_t GctkFileRead_u32(FILE* file, uint32_t* output) {
+	return fread(output, sizeof(uint32_t), 1, file);
+}
+size_t GctkFileRead_u64(FILE* file, uint64_t* output) {
+	return fread(output, sizeof(uint64_t), 1, file);
+}
+
+size_t GctkFileRead_i8 (FILE* file, int8_t* output) {
+	return fread(output, sizeof(int8_t), 1, file);
+}
+size_t GctkFileRead_i16(FILE* file, int16_t* output) {
+	return fread(output, sizeof(int16_t), 1, file);
+}
+size_t GctkFileRead_i32(FILE* file, int32_t* output) {
+	return fread(output, sizeof(int32_t), 1, file);
+}
+size_t GctkFileRead_i64(FILE* file, int64_t* output) {
+	return fread(output, sizeof(int64_t), 1, file);
+}
+
+size_t GctkFileRead_f32(FILE* file, float* output) {
+	return fread(output, sizeof(float), 1, file);
+}
+size_t GctkFileRead_f64(FILE* file, double* output) {
+	return fread(output, sizeof(double), 1, file);
+}
+
+size_t GctkFileRead_str(FILE* file, char* buffer, size_t buffer_max_size) {
+	size_t i = 0;
+	int c;
+	while (!feof(file)) {
+		c = fgetc(file);
+		if (c == EOF || c == '\0' || i >= buffer_max_size) {
+			break;
+		}
+		buffer[i++] = (char)c;
+	}
+	buffer[i] = '\0';
+	return i;
 }
 
 size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const char* delims) {
@@ -382,4 +426,47 @@ size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const 
 
 	buffer[offset] = '\0';
 	return offset;
+}
+
+size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size) {
+	return fwrite(data, item_size, write_count, file);
+}
+
+size_t GctkFileWrite_u8(FILE* file,  uint8_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(uint8_t));
+}
+size_t GctkFileWrite_u16(FILE* file, uint16_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(uint16_t));
+}
+size_t GctkFileWrite_u32(FILE* file, uint32_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(uint32_t));
+}
+size_t GctkFileWrite_u64(FILE* file, uint64_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(uint64_t));
+}
+
+size_t GctkFileWrite_i8(FILE* file,  int8_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(int8_t));
+}
+size_t GctkFileWrite_i16(FILE* file, int16_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(int16_t));
+}
+size_t GctkFileWrite_i32(FILE* file, int32_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(int32_t));
+}
+size_t GctkFileWrite_i64(FILE* file, int64_t data) {
+	return GctkFileWrite(file, &data, 1, sizeof(int64_t));
+}
+
+size_t GctkFileWrite_f32(FILE* file, float  data) {
+	return GctkFileWrite(file, &data, 1, sizeof(float));
+}
+size_t GctkFileWrite_f64(FILE* file, double data) {
+	return GctkFileWrite(file, &data, 1, sizeof(double));
+}
+size_t GctkFileWrite_str(FILE* file, const char* data) {
+	return fputs(data, file);
+}
+size_t GctkFileWriteLine(FILE* file, const char* data) {
+	return fputs(data, file) + fputc('\n', file);
 }

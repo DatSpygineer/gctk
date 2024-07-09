@@ -71,6 +71,9 @@ GCTK_API bool GctkLoadImageFromFile(Texture* texture, const char* path, ImageLoa
 GCTK_API bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size);
 GCTK_API bool GctkLoadTextureFromFile(Texture* texture, const char* path);
 
+GCTK_API bool GctkWriteTexture(const Texture* texture, uint8_t* buffer, size_t buffer_max_size, bool rle);
+GCTK_API bool GctkWriteTextureToFile(const Texture* texture, const char* path, bool rle);
+
 GCTK_API void GctkDeleteTexture(Texture* texture);
 GCTK_API void GctkBindTexture(const Texture* texture);
 

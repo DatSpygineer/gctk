@@ -51,7 +51,10 @@
 #define GCTK_STRCAT(__a__, __b__) GCTK_STRCAT_IMPL(__a__, __b__)
 #define GCTK_UNIQUE_NAME(__prefix__) GCTK_STRCAT(__prefix__, __LINE__)
 
-#define GCTK_DEFER(__var__, __free_fn__) \
-for (int GCTK_UNIQUE_NAME(__temp) = 0; GCTK_UNIQUE_NAME(__temp) < 1; (GCTK_UNIQUE_NAME(__temp)++, (__free_fn__)(__var__)))
+#define GCTK_DEFER(__free_fn__) \
+for (int GCTK_UNIQUE_NAME(__temp) = 0; GCTK_UNIQUE_NAME(__temp) < 1; (GCTK_UNIQUE_NAME(__temp)++, (__free_fn__)))
+
+#define GCTK_MALLOC(T) ((T*)malloc(sizeof(T)))
+#define GCTK_CALLOC(T, __count) ((T*)calloc((__count), sizeof(T)))
 
 #endif // GCTK_COMMON_H

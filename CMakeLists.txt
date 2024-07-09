@@ -8,7 +8,7 @@ project(gctk C)
 option(GCTK_ENABLE_LUA "Should GCTk use Lua bindings" OFF)
 option(GCTK_ENABLE_FLUIDSYNTH "Should GCTk link fluidsynth" OFF)
 
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 
 if (WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
@@ -25,6 +25,7 @@ file(GLOB GCTK_SOURCES	${CMAKE_CURRENT_LIST_DIR}/src/*.c
 find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(cJSON REQUIRED)
 
 if (GCTK_ENABLE_LUA)
 	find_package(LuaJIT REQUIRED)
@@ -48,8 +49,8 @@ target_include_directories(tinyfiledialogs PUBLIC ${CMAKE_CURRENT_LIST_DIR}/thir
 set_target_properties     (tinyfiledialogs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_library               (gctk SHARED ${GCTK_SOURCES})
-target_link_libraries     (gctk PUBLIC OpenGL::GL glfw GLEW::GLEW cglm_headers tinyfiledialogs)
-target_include_directories(gctk PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries     (gctk PUBLIC OpenGL::GL glfw GLEW::GLEW cglm_headers tinyfiledialogs cjson)
+target_include_directories(gctk PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/thirdparty/cJSON)
 target_compile_definitions(gctk PRIVATE -DGCTK_EXPORTS)
 set_target_properties     (gctk PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -65,7 +66,7 @@ if (GCTK_ENABLE_FLUIDSYNTH)
 endif()
 
 add_library               (gctk_static STATIC ${GCTK_SOURCES})
-target_link_libraries     (gctk_static PUBLIC OpenGL::GL glfw GLEW::GLEW cglm_headers tinyfiledialogs)
+target_link_libraries     (gctk_static PUBLIC OpenGL::GL glfw GLEW::GLEW cglm_headers tinyfiledialogs cjson)
 target_include_directories(gctk_static PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_compile_definitions(gctk_static PUBLIC -DGCTK_STATIC)
 

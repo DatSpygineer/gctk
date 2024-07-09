@@ -5,6 +5,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "gctk/stb/stb_image.h"
 #include "gctk/math.h"
+#include "gctk/collections.h"
 
 GLuint GctkGetGLTarget(TextureTarget target) {
 	switch (target) {
@@ -321,7 +322,7 @@ bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size) {
 			uint64_t packet = 0;
 			while (offset < data_size) {
 				size_t current_packet_size = (palette_size > 0 && write_offset < palette_size) ? 4 : packet_size;
-				memcpy(&packet, uncompressed_data, current_packet_size);
+				memcpy(&packet, data + offset, current_packet_size);
 				uint8_t count = packet & 0xFF;
 				packet >>= 8;
 
@@ -370,6 +371,142 @@ bool GctkLoadTextureFromFile(Texture* texture, const char* path) {
 	GctkCloseFile(f);
 	return result;
 }
+
+static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* texture, bool rle) {
+	GctkBinaryWriterAppend_u8(writer, 'G');
+	GctkBinaryWriterAppend_u8(writer, 'T');
+	GctkBinaryWriterAppend_u8(writer, 'E');
+	GctkBinaryWriterAppend_u8(writer, 'X');
+
+	uint8_t flags = 0;
+	flags |= texture->target & 0b111u;
+	flags |= (texture->clamp_r & 1u) << 3;
+	flags |= (texture->clamp_s & 1u) << 4;
+	flags |= (texture->clamp_t & 1u) << 5;
+	flags |= (texture->point_filter & 1u) << 6;
+	flags |= (texture->mipmaps & 1u) << 7;
+
+	GctkBinaryWriterAppend_u8(writer, flags);
+	GctkBinaryWriterAppend_u8(writer, rle ? texture->format | GCTK_WITH_RLE : texture->format);
+	GctkBinaryWriterAppend_u16(writer, texture->width);
+	if (texture->target >= GCTK_TEXTURE_2D) {
+		GctkBinaryWriterAppend_u16(writer, texture->height);
+	}
+	if (texture->target == GCTK_TEXTURE_3D || texture->target >= GCTK_TEXTURE_2D_ARRAY) {
+		GctkBinaryWriterAppend_u16(writer, texture->depth);
+	}
+
+	GLenum format;
+	const GLsizei pixel_count = GctkMin(texture->width, 1) * GctkMin(texture->height, 1) * GctkMin(texture->depth, 1);
+	GLsizei pixel_size;
+	switch (texture->format) {
+		case GCTK_GRAYSCALE: {
+			format = GL_RED;
+			pixel_size = 1;
+		} break;
+		case GCTK_GRAYSCALE_ALPHA: {
+			format = GL_RG;
+			pixel_size = 2;
+		} break;
+		case GCTK_RGB:
+		case GCTK_INDEXED_16:
+		case GCTK_INDEXED_8: {
+			format = GL_RGB;
+			pixel_size = 3;
+		} break;
+		default:
+		case GCTK_RGBA:
+		case GCTK_INDEXED_16_ALPHA:
+		case GCTK_INDEXED_8_ALPHA: {
+			format = GL_RGBA;
+			pixel_size = 4;
+		} break;
+	}
+
+	uint8_t* image_data = (uint8_t*)malloc(pixel_count * pixel_size);
+	GctkGLCall(glGetTextureImage(texture->id, 0, format, GL_UNSIGNED_BYTE, pixel_count * pixel_size, image_data));
+
+	bool result;
+	if (rle) {
+		uint8_t count = 0;
+		uint64_t data = UINT64_MAX;
+
+		size_t packet_size;
+		switch ((TextureFormat)(format & ~GCTK_WITH_RLE)) {
+			case GCTK_INDEXED_8:
+			case GCTK_GRAYSCALE: {
+				packet_size = 2;	// count (1), data (1)
+			} break;
+			case GCTK_RGB:
+			case GCTK_INDEXED_16_ALPHA:
+			case GCTK_INDEXED_16:
+			case GCTK_INDEXED_8_ALPHA:
+			case GCTK_GRAYSCALE_ALPHA: {
+									// RGB, IDX16A        => count (1), data (3)
+				packet_size = 4;	// LA88, IDX8A, IDX16 => count (1), data (2), unused (1)
+			} break;
+			case GCTK_RGBA: {
+				packet_size = 6;	// count (1), data (4), unused (1)
+			} break;
+		}
+
+		Vector vec;
+		GctkVectorAlloc(&vec, 0, GctkGetDefaultAllocator());
+		for (GLsizei i = 0; i < pixel_count; i++) {
+			if (data > UINT32_MAX) {
+				data = 0;
+				memcpy(&data, image_data + (i * pixel_size), pixel_size);
+				count = 1;
+			} else {
+				uint32_t data_current = 0;
+				memcpy(&data_current, image_data + (i * pixel_size), pixel_size);
+				if (data == data_current) {
+					count++;
+				} else {
+					uint64_t packet = (data << (8 * pixel_size)) | count;
+					GctkVectorAddItem(&vec, &packet, packet_size);
+					data = UINT64_MAX;
+					count = 0;
+				}
+			}
+		}
+		if (data <= UINT32_MAX) {
+			uint64_t packet = (data << (8 * pixel_size)) | count;
+			GctkVectorAddItem(&vec, &packet, packet_size);
+			data = UINT64_MAX;
+			count = 0;
+		}
+		result = GctkBinaryWriterAppendBytes(writer, vec.data, vec.count);
+	} else {
+		result = GctkBinaryWriterAppendBytes(writer, image_data, pixel_count * pixel_size);
+	}
+	return result;
+}
+
+bool GctkWriteTexture(const Texture* texture, uint8_t* buffer, size_t buffer_max_size, bool rle) {
+	Vector vec;
+	BinaryWriter writer = GctkBinaryWriterNewFromVector(&vec);
+	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
+
+	if (result) {
+		memcpy(buffer, vec.data, GctkMax(vec.count, buffer_max_size));
+	}
+
+	GctkBinaryWriterClose(&writer);
+	return result;
+}
+bool GctkWriteTextureToFile(const Texture* texture, const char* path, bool rle) {
+	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_WRITE, GCTK_FILE_OPEN_OR_CREATE | GCTK_FILE_BINARY);
+	if (f == NULL) {
+		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to open file \"%s\"", path);
+		return false;
+	}
+	BinaryWriter writer = GctkBinaryWriterNewFromFile(f);
+	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
+	GctkBinaryWriterClose(&writer);
+	return result;
+}
+
 void GctkDeleteTexture(Texture* texture) {
 	if (texture != NULL) {
 		GctkGLCall(glDeleteTextures(1, &texture->id));

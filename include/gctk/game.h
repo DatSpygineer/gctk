@@ -28,6 +28,9 @@ GCTK_API bool GctkInit(int argc, char** argv, const char* name, const char* auth
 GCTK_API bool GctkUpdate();
 GCTK_API void GctkDispose();
 
+GCTK_API bool GctkLoadSettings();
+GCTK_API bool GctkWriteSettings();
+
 GCTK_API void GctkClose();
 GCTK_API void GctkGetBaseDirectory(char* buffer);
 GCTK_API void GctkGetUserDirectory(char* buffer);
@@ -46,8 +49,15 @@ GCTK_API double GctkDeltaTime();
 
 GCTK_API void* GctkGetWindowHandle();
 
+GCTK_API void GctkSetWindowPos(Vec2i pos);
+GCTK_API void GctkSetWindowSize(Vec2i size);
+GCTK_API void GctkSetWindowFullscreen(bool fullscreen, int monitor_idx);
+
 GCTK_API Vec2i GctkGetWindowSize();
 GCTK_API Vec2i GctkGetWindowPos();
+GCTK_API int   GctkGetWindowMonitorIdx();
+
+GCTK_API bool GctkIsWindowFullscreen();
 
 GCTK_API void GctkSetTitle(const char* title);
 

@@ -4,9 +4,9 @@
 #define GctkMax(__x__, __max__) ((__x__) > (__max__) ? (__max__) : (__x__))
 
 char* GctkStrCpy(char* trg, const char* source, size_t max_size) {
-	return GctkStrNCpy(trg, source, max_size, strlen(source));
+	return GctkStrCpySlice(trg, source, max_size, strlen(source));
 }
-char* GctkStrNCpy(char* trg, const char* source, size_t max_size, size_t count) {
+char* GctkStrCpySlice(char* trg, const char* source, size_t max_size, size_t count) {
 	size_t len = GctkMax(count, max_size);
 	char* p = strncpy(trg, source, len);
 	if (p != NULL) {
@@ -70,6 +70,17 @@ bool GctkStrEqNoCase(const char* lhs, const char* rhs) {
 #endif
 }
 
+bool GctkStrEqSlice(const char* lhs, const char* rhs, size_t n) {
+	return strncmp(lhs, rhs, n) == 0;
+}
+bool GctkStrEqSliceNoCase(const char* lhs, const char* rhs, size_t n) {
+#ifdef _WIN32
+	return _strnicmp(lhs, rhs, n) == 0;
+#else
+	return strncasecmp(lhs, rhs, n) == 0;
+#endif
+}
+
 bool GctkStrIsValidInteger(const char* str, int base) {
 	while (*str) {
 		switch (base) {
@@ -125,6 +136,20 @@ bool GctkStrParseToInt(const char* str, int base, int* output) {
 bool GctkStrParseToFloat(const char* str, float* output) {
 	if (output != NULL && GctkStrIsValidNumber(str)) {
 		*output = strtof(str, NULL);
+		return true;
+	}
+	return false;
+}
+bool GctkStrParseToInt64(const char* str, int base, int64_t* output) {
+	if (output != NULL && GctkStrIsValidInteger(str, base)) {
+		*output = strtoll(str, NULL, base);
+		return true;
+	}
+	return false;
+}
+bool GctkStrParseToFloat64(const char* str, double* output) {
+	if (output != NULL && GctkStrIsValidNumber(str)) {
+		*output = strtod(str, NULL);
 		return true;
 	}
 	return false;

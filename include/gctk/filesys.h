@@ -93,8 +93,41 @@ GCTK_API size_t GctkFileSize(FILE* file);
 
 GCTK_API size_t GctkFileRead(FILE* file, void* dest, size_t read_count, size_t item_size);
 GCTK_API size_t GctkFileReadToEnd(FILE* file, void* dest, size_t max_buffer_size);
-GCTK_API size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size);
+
+GCTK_API size_t GctkFileRead_u8 (FILE* file, uint8_t* output);
+GCTK_API size_t GctkFileRead_u16(FILE* file, uint16_t* output);
+GCTK_API size_t GctkFileRead_u32(FILE* file, uint32_t* output);
+GCTK_API size_t GctkFileRead_u64(FILE* file, uint64_t* output);
+
+GCTK_API size_t GctkFileRead_i8 (FILE* file, int8_t* output);
+GCTK_API size_t GctkFileRead_i16(FILE* file, int16_t* output);
+GCTK_API size_t GctkFileRead_i32(FILE* file, int32_t* output);
+GCTK_API size_t GctkFileRead_i64(FILE* file, int64_t* output);
+
+GCTK_API size_t GctkFileRead_f32(FILE* file, float* output);
+GCTK_API size_t GctkFileRead_f64(FILE* file, double* output);
+
+GCTK_API size_t GctkFileRead_str(FILE* file, char* buffer, size_t buffer_max_size);
 
 GCTK_API size_t GctkFileReadLine(FILE* file, char* buffer, size_t max_buffer_size, const char* delims);
+
+GCTK_API size_t GctkFileWrite(FILE* file, const void* data, size_t write_count, size_t item_size);
+
+GCTK_API size_t GctkFileWrite_u8(FILE* file,  uint8_t data);
+GCTK_API size_t GctkFileWrite_u16(FILE* file, uint16_t data);
+GCTK_API size_t GctkFileWrite_u32(FILE* file, uint32_t data);
+GCTK_API size_t GctkFileWrite_u64(FILE* file, uint64_t data);
+
+GCTK_API size_t GctkFileWrite_i8(FILE* file,  int8_t data);
+GCTK_API size_t GctkFileWrite_i16(FILE* file, int16_t data);
+GCTK_API size_t GctkFileWrite_i32(FILE* file, int32_t data);
+GCTK_API size_t GctkFileWrite_i64(FILE* file, int64_t data);
+
+GCTK_API size_t GctkFileWrite_f32(FILE* file, float  data);
+GCTK_API size_t GctkFileWrite_f64(FILE* file, double data);
+
+GCTK_API size_t GctkFileWrite_str(FILE* file, const char* data);
+
+GCTK_API size_t GctkFileWriteLine(FILE* file, const char* data);
 
 #endif // GCTK_FILESYS_H

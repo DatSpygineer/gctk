@@ -19,8 +19,18 @@
 	#define GCTK_CRC32_POLY 0xEDB88320
 #endif
 
+#define GctkCharIsWhitespace(__c) ((__c) == ' ' || (__c) == '\t' || (__c) == '\n' || (__c) == '\r')
+#define GctkCharIsLetterLowercase(__c) (((__c) >= 'a' && (__c) <= 'z'))
+#define GctkCharIsLetterUppercase(__c) (((__c) >= 'A' && (__c) <= 'Z'))
+#define GctkCharIsLetter(__c) (GctkCharIsLetterLowercase(__c) || GctkCharIsLetterUppercase(__c))
+#define GctkCharIsNumber(__c) ((__c) >= '0' && (__c) <= '9')
+#define GctkCharIsNumberHex(__c) (((__c) >= '0' && (__c) <= '9') || ((__c) >= 'a' && (__c) <= 'f') || ((__c) >= 'A' && (__c) <= 'F'))
+#define GctkCharIsNumberOct(__c) ((__c) >= '0' && (__c) <= '7')
+#define GctkCharIsNumberBin(__c) ((__c) == '0' || (__c) == '1')
+#define GctkCharIsAlphaNumeric(__c) (GctkCharIsNumber(__c) || GctkCharIsLetter(__c))
+
 GCTK_API char* GctkStrCpy(char* trg, const char* source, size_t max_size);
-GCTK_API char* GctkStrNCpy(char* trg, const char* source, size_t max_size, size_t count);
+GCTK_API char* GctkStrCpySlice(char* trg, const char* source, size_t max_size, size_t count);
 GCTK_API char* GctkStrJoin(char* trg, const char* lhs, const char* rhs, size_t max_size);
 GCTK_API char* GctkStrAppend(char* trg, const char* src, size_t max_size);
 
@@ -35,11 +45,16 @@ GCTK_API bool GctkStrEndWithStrNoCase(const char* str, const char* end_with);
 GCTK_API bool GctkStrEq(const char* lhs, const char* rhs);
 GCTK_API bool GctkStrEqNoCase(const char* lhs, const char* rhs);
 
+GCTK_API bool GctkStrEqSlice(const char* lhs, const char* rhs, size_t n);
+GCTK_API bool GctkStrEqSliceNoCase(const char* lhs, const char* rhs, size_t n);
+
 GCTK_API bool GctkStrIsValidInteger(const char* str, int base);
 GCTK_API bool GctkStrIsValidNumber(const char* str);
 
 GCTK_API bool GctkStrParseToInt(const char* str, int base, int* output);
 GCTK_API bool GctkStrParseToFloat(const char* str, float* output);
+GCTK_API bool GctkStrParseToInt64(const char* str, int base, int64_t* output);
+GCTK_API bool GctkStrParseToFloat64(const char* str, double* output);
 
 GCTK_API bool GctkStrParseSliceToInt(const char* str, size_t length, int base, int* output);
 GCTK_API bool GctkStrParseSliceToFloat(const char* str, size_t length, float* output);

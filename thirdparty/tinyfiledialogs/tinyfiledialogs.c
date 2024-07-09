@@ -2853,8 +2853,8 @@ int tinyfd_messageBox(
 		UINT lOriginalCP = 0;
 		UINT lOriginalOutputCP = 0;
 
-		if (tfd_quoteDetected(aTitle)) return tinyfd_messageBox("INVALID TITLE WITH QUOTES", aMessage, aDialogType, aIconType, aDefaultButton);
-		if (tfd_quoteDetected(aMessage)) return tinyfd_messageBox(aTitle, "INVALID MESSAGE WITH QUOTES", aDialogType, aIconType, aDefaultButton);
+		//if (tfd_quoteDetected(aTitle)) return tinyfd_messageBox("INVALID TITLE WITH QUOTES", aMessage, aDialogType, aIconType, aDefaultButton);
+		//if (tfd_quoteDetected(aMessage)) return tinyfd_messageBox(aTitle, "INVALID MESSAGE WITH QUOTES", aDialogType, aIconType, aDefaultButton);
 
 		if ((!tinyfd_forceConsole || !(GetConsoleWindow() || dialogPresent()))
 				&& (!getenv("SSH_CLIENT") || getenvDISPLAY()))
