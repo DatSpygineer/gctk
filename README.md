@@ -2,9 +2,6 @@
 
 GCTk is a library for making games written in C with Lua bindings. This library uses OpenGL 4.6 for rendering.
 
-
-The project is going under the name "cgctk", because this is the C version.
-
 This project is in a very early stage, it is not feature complete and breaking updates may occur.
 
 ## Dependencies:
@@ -25,7 +22,7 @@ git clone https://github.com/DatSpygineer/gctk --recursive
 ```
 
 ### Windows:
-You need to install VCPKG for dependencies. The project already contains a toolchain file to find VCPKG.
+You need to install VCPKG for dependencies. The project already contains a toolchain file to find VCPKG, make sure the base directory of VCPKG is added to the PATH variable.
 Make sure you have the required dependencies installed.
 
 Create a build folder and enter
