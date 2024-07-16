@@ -1,11 +1,12 @@
 #include "gctk/rendering/texture.h"
 #include "gctk/filesys.h"
 #include "gctk/debug.h"
+#include "gctk/math.h"
+#include "gctk/bithelper.h"
+#include "gctk/collections.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "gctk/stb/stb_image.h"
-#include "gctk/math.h"
-#include "gctk/collections.h"
 
 GLuint GctkGetGLTarget(TextureTarget target) {
 	switch (target) {
@@ -378,6 +379,8 @@ static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* te
 	GctkBinaryWriterAppend_u8(writer, 'E');
 	GctkBinaryWriterAppend_u8(writer, 'X');
 
+	GctkBinaryWriterAppend_u8(writer, GTEX_VERSION);
+
 	uint8_t flags = 0;
 	flags |= texture->target & 0b111u;
 	flags |= (texture->clamp_r & 1u) << 3;
@@ -485,7 +488,7 @@ static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* te
 
 bool GctkWriteTexture(const Texture* texture, uint8_t* buffer, size_t buffer_max_size, bool rle) {
 	Vector vec;
-	BinaryWriter writer = GctkBinaryWriterNewFromVector(&vec);
+	BinaryWriter writer = GctkBinaryWriterNewFromVector(&vec, GCTK_LITTLE_ENDIAN);
 	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
 
 	if (result) {
@@ -501,7 +504,7 @@ bool GctkWriteTextureToFile(const Texture* texture, const char* path, bool rle) 
 		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to open file \"%s\"", path);
 		return false;
 	}
-	BinaryWriter writer = GctkBinaryWriterNewFromFile(f);
+	BinaryWriter writer = GctkBinaryWriterNewFromFile(f, GCTK_LITTLE_ENDIAN);
 	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
 	GctkBinaryWriterClose(&writer);
 	return result;

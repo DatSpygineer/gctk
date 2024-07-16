@@ -25,7 +25,7 @@ static char GCTK_BASE_DIR[GCTK_PATH_MAX] = { 0 };
 static char GCTK_NAME[512] = { 0 };
 static char GCTK_AUTHOR[512] = { 0 };
 
-static Version GCTK_VERSION = { 0 };
+static Version GCTK_GAME_VERSION = {0 };
 static void (*GCTK_UPDATE_CALLBACK)(double) = NULL;
 static void (*GCTK_RENDER_CALLBACK)(double) = NULL;
 static void (*GCTK_PRE_RENDER_CALLBACK)(double) = NULL;
@@ -53,7 +53,7 @@ const Version GCTK_ENGINE_VERSION = VERSION(
 const char* GCTK_ENGINE_VERSION_STRING = "1.0 ALPHA";
 
 Version GctkGetGameVersion() {
-	return GCTK_VERSION;
+	return GCTK_GAME_VERSION;
 }
 
 int GctkGetVersionString(char* buffer, size_t max_size, const Version* version) {
@@ -80,7 +80,7 @@ int GctkGetVersionString(char* buffer, size_t max_size, const Version* version) 
 }
 
 bool GctkInit(int argc, char** argv, const char* name, const char* author, Version game_version) {
-	GCTK_VERSION = game_version;
+	GCTK_GAME_VERSION = game_version;
 	GctkStrCpy(GCTK_NAME, name, 512);
 	GctkStrCpy(GCTK_AUTHOR, author, 512);
 	GctkPathGetBase(GCTK_BASE_DIR, argv[0]);
@@ -199,12 +199,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	}
 
 #ifndef NDEBUG
-	char debug_title[1025] = { 0 };
-	snprintf(debug_title, 1024, "%s | DEBUG | Gctk v%s | OpenGL v%s", name,
-			 GCTK_ENGINE_VERSION_STRING,
-			 glGetString(GL_VERSION)
-	);
-	glfwSetWindowTitle(GCTK_WINDOW, debug_title);
+	GctkSetTitle(name);
 #endif
 
 	glfwSetWindowSizeCallback(GCTK_WINDOW, &GctkWindowResizeCallback);
@@ -462,7 +457,11 @@ bool GctkIsWindowFullscreen() {
 void GctkSetTitle(const char* title) {
 #ifndef NDEBUG
 	char debug_title[1025] = { 0 };
-	snprintf(debug_title, 1024, "%s | DEBUG | Gctk v%s | OpenGL v%s", title,
+	char game_version[256] = { 0 };
+	GctkGetVersionString(game_version, 256, &GCTK_GAME_VERSION);
+
+	snprintf(debug_title, 1024, "[DEBUG] %s | Game v%s | Gctk v%s | OpenGL v%s", title,
+			 game_version,
 			 GCTK_ENGINE_VERSION_STRING,
 			 glGetString(GL_VERSION)
 	);

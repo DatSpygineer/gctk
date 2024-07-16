@@ -36,12 +36,12 @@ typedef struct {
 
 GCTK_API bool GctkRenderEnqueueSprite2D(const Sprite* sprite, Color color, Transform2D transform);
 GCTK_API bool GctkRenderEnqueueSprite2DNoTint(const Sprite* sprite, Transform2D transform);
-GCTK_API bool GctkRenderEnqueueAnimatedSprite2D(const AnimatedSprite* sprite, Color color, Transform2D transform);
-GCTK_API bool GctkRenderEnqueueAnimatedSprite2DNoTint(const AnimatedSprite* sprite, Transform2D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite2D(AnimatedSprite* sprite, Color color, Transform2D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite2DNoTint(AnimatedSprite* sprite, Transform2D transform);
 GCTK_API bool GctkRenderEnqueueSprite3D(const Sprite* sprite, Color color, Transform3D transform);
 GCTK_API bool GctkRenderEnqueueSprite3DNoTint(const Sprite* sprite, Transform3D transform);
-GCTK_API bool GctkRenderEnqueueAnimatedSprite3D(const AnimatedSprite* sprite, Color color, Transform3D transform);
-GCTK_API bool GctkRenderEnqueueAnimatedSprite3DNoTint(const AnimatedSprite* sprite, Transform3D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite3D(AnimatedSprite* sprite, Color color, Transform3D transform);
+GCTK_API bool GctkRenderEnqueueAnimatedSprite3DNoTint(AnimatedSprite* sprite, Transform3D transform);
 GCTK_API bool GctkRenderEnqueueModel(const Mesh* mesh, Transform3D transform);
 
 GCTK_API bool GctkRenderQueueIsEmpty();

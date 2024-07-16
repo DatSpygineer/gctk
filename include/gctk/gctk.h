@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include "gctk/common.h"
+#include "gctk/bithelper.h"
 #include "gctk/math.h"
 #include "gctk/game.h"
 #include "gctk/debug.h"

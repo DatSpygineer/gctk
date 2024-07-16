@@ -84,7 +84,19 @@ endif()
 add_library(gctk::shared ALIAS gctk)
 add_library(gctk::static ALIAS gctk_static)
 
-add_executable(gctk_test ${CMAKE_CURRENT_LIST_DIR}/src/test/main.c)
-target_link_libraries(gctk_test PRIVATE gctk)
+function (gctk_add_game EXE_NAME NAME AUTHOR VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_LIFECYCLE)
+	add_executable(${EXE_NAME} ${ARGN})
+	target_link_libraries(${EXE_NAME} PRIVATE gctk)
+	target_compile_definitions(${EXE_NAME} PRIVATE
+		"-DGCTK_GAME_NAME=\"${NAME}\""
+		"-DGCTK_GAME_AUTHOR=\"${AUTHOR}\""
+		"-DGCTK_GAME_VERSION_MAJOR=${VERSION_MAJOR}"
+		"-DGCTK_GAME_VERSION_MINOR=${VERSION_MINOR}"
+		"-DGCTK_GAME_VERSION_PATCH=${VERSION_PATCH}"
+		"-DGCTK_GAME_VERSION_LIFECYCLE=${VERSION_LIFECYCLE}"
+		"-DGCTK_GAME_VERSION=VERSION(GCTK_GAME_VERSION_MAJOR, GCTK_GAME_VERSION_MINOR, GCTK_GAME_VERSION_PATCH, GCTK_GAME_VERSION_LIFECYCLE)"
+	)
+endfunction()
 
+gctk_add_game(gctk_test "Test" "Gctk" 1 0 0 GCTK_VERSION_RELEASE ${CMAKE_CURRENT_LIST_DIR}/src/test/main.c)
 add_subdirectory(tools)

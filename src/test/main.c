@@ -29,7 +29,7 @@ static void update(double delta) {
 }
 
 int main(int argc, char** argv) {
-	if (!GctkInit(argc, argv, "Test", "Gctk", VERSION(1, 0, 0, GCTK_VERSION_RELEASE))) {
+	if (!GctkInitGame(argc, argv)) {
 		return GctkLastErrorCode();
 	}
 

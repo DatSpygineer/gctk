@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#if defined(GCTK_ENABLE_PREPROCESSOR) && (GCTK_ENABLE_PREPROCESSOR != 0)
+	#include "gctk/preprocessor.h"
+#endif
+
 #ifdef _WIN32
 	#ifdef max
 		#undef max

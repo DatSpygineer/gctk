@@ -13,6 +13,7 @@ typedef struct Shader {
 #define GCTK_SHADER_NULL ((Shader){ 0 })
 
 GCTK_API bool GctkCompileShader(Shader* shader, const char* vert, const char* frag);
+GCTK_API bool GctkCompileShaderFile(Shader* shader, const char* vert_path, const char* frag_path);
 GCTK_API bool GctkLoadShaderSPRV(Shader* shader,
 								 const uint8_t* vert_data, size_t vert_size, const char* vert_entry,
 								 const uint8_t* frag_data, size_t frag_size, const char* frag_entry);

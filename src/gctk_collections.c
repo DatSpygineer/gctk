@@ -3,6 +3,10 @@
 #include "gctk/collections.h"
 #include "gctk/debug.h"
 
+void* GctkMallocImpl(size_t count, size_t item_size);
+void* GctkReallocImpl(void** ptr, size_t original_count, size_t new_count, size_t item_size);
+void GctkFreeImpl(void** ptr);
+
 #if !defined(NDEBUG) || defined(GCTK_ALLOW_MEMORY_LOG)
 typedef struct GctkMemoryCounter {
 	void* ptr;
@@ -11,13 +15,6 @@ typedef struct GctkMemoryCounter {
 
 static GctkMemoryCounter GCTK_MEMORY_COUNTER[1024] = { 0 };
 static size_t GCTK_MEMORY_COUNTER_COUNT = 0;
-
-void* GctkMallocImpl(size_t count, size_t item_size);
-void* GctkReallocImpl(void** ptr, size_t original_count, size_t new_count, size_t item_size);
-void GctkFreeImpl(void** ptr);
-
-static Allocator GCTK_DEFAULT_ALLOCATOR = ALLOCATOR(sizeof(uint8_t), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
-static Allocator GCTK_HASHMAP_PAIR_ALLOCATOR = ALLOCATOR(sizeof(HashMapPair), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
 
 void GctkReportMemoryLeakCount() {
 	bool leak_detected = false;
@@ -82,8 +79,10 @@ void GctkCountDealloc(void* ptr) {
 	}
 	GctkLog("[ Deallocated memory %p ]", ptr);
 }
-
 #endif
+
+static Allocator GCTK_DEFAULT_ALLOCATOR = ALLOCATOR(sizeof(uint8_t), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
+static Allocator GCTK_HASHMAP_PAIR_ALLOCATOR = ALLOCATOR(sizeof(HashMapPair), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
 
 void* GctkMallocImpl(size_t count, size_t item_size) {
 	void* ptr = calloc(count, item_size);
@@ -532,16 +531,18 @@ bool GctkHashMapClear(HashMap* map) {
 	return true;
 }
 
-BinaryWriter GctkBinaryWriterNewFromFile(FILE* f) {
+BinaryWriter GctkBinaryWriterNewFromFile(FILE* f, Endianness endianness) {
 	return (BinaryWriter) {
 		.file =  f,
-		.is_file = true
+		.is_file = true,
+		.endianness = endianness
 	};
 }
-BinaryWriter GctkBinaryWriterNewFromVector(Vector* vector) {
+BinaryWriter GctkBinaryWriterNewFromVector(Vector* vector, Endianness endianness) {
 	return (BinaryWriter) {
 		.buffer = vector,
-		.is_file = false
+		.is_file = false,
+		.endianness = endianness
 	};
 }
 void GctkBinaryWriterClose(BinaryWriter* writer) {
@@ -564,6 +565,11 @@ bool GctkBinaryWriterAppend_u8 (BinaryWriter* writer, uint8_t value) {
 }
 bool GctkBinaryWriterAppend_u16(BinaryWriter* writer, uint16_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseU16(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_u16(writer->file, value) > 0;
 	}
@@ -571,6 +577,11 @@ bool GctkBinaryWriterAppend_u16(BinaryWriter* writer, uint16_t value) {
 }
 bool GctkBinaryWriterAppend_u32(BinaryWriter* writer, uint32_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseU32(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_u32(writer->file, value) > 0;
 	}
@@ -578,6 +589,11 @@ bool GctkBinaryWriterAppend_u32(BinaryWriter* writer, uint32_t value) {
 }
 bool GctkBinaryWriterAppend_u64(BinaryWriter* writer, uint64_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseU64(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_u64(writer->file, value) > 0;
 	}
@@ -592,6 +608,11 @@ bool GctkBinaryWriterAppend_i8 (BinaryWriter* writer, int8_t value) {
 }
 bool GctkBinaryWriterAppend_i16(BinaryWriter* writer, int16_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseI16(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_i16(writer->file, value) > 0;
 	}
@@ -599,6 +620,11 @@ bool GctkBinaryWriterAppend_i16(BinaryWriter* writer, int16_t value) {
 }
 bool GctkBinaryWriterAppend_i32(BinaryWriter* writer, int32_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseI32(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_i32(writer->file, value) > 0;
 	}
@@ -606,6 +632,11 @@ bool GctkBinaryWriterAppend_i32(BinaryWriter* writer, int32_t value) {
 }
 bool GctkBinaryWriterAppend_i64(BinaryWriter* writer, int64_t value) {
 	if (writer == NULL) return false;
+
+	if (GCTK_ENDIANNESS != writer->endianness) {
+		value = GctkReverseI64(value);
+	}
+
 	if (writer->is_file) {
 		return GctkFileWrite_i64(writer->file, value) > 0;
 	}

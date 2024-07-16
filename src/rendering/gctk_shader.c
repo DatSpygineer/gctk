@@ -1,4 +1,5 @@
 #include "gctk/rendering/shader.h"
+#include "gctk/filesys.h"
 #include "gctk/debug.h"
 #include "gctk/str.h"
 
@@ -103,6 +104,30 @@ bool GctkCompileShader(Shader* shader, const char* vert, const char* frag) {
 
 	shader->deleted = false;
 	return GctkLinkShader(&shader->id, GCTK_GET_DEBUG_INFO, shaders, 2);
+}
+bool GctkCompileShaderFile(Shader* shader, const char* vert_path, const char* frag_path) {
+	char vert_src[4096] = { 0 };
+	char frag_src[4096] = { 0 };
+
+	FILE* f_vert = GctkOpenFile(vert_path, GCTK_FILEMODE_READ, GCTK_FILE_OPEN);
+	if (f_vert == NULL) {
+		GctkLogError(GCTK_ERROR_IO_FAILURE, "Failed to open vertex shader \"%s\"", vert_path);
+		return false;
+	}
+
+	FILE* f_frag = GctkOpenFile(frag_path, GCTK_FILEMODE_READ, GCTK_FILE_OPEN);
+	if (f_frag == NULL) {
+		fclose(f_vert);
+		GctkLogError(GCTK_ERROR_IO_FAILURE, "Failed to open fragment shader \"%s\"", frag_path);
+		return false;
+	}
+
+	GctkFileRead_str(f_vert, vert_src, 4096);
+	GctkFileRead_str(f_frag, frag_src, 4096);
+	fclose(f_vert);
+	fclose(f_frag);
+
+	return GctkCompileShader(shader, vert_src, frag_src);
 }
 bool GctkLoadShaderSPRV(Shader* shader,
 						const uint8_t* vert_data, size_t vert_size, const char* vert_entry,

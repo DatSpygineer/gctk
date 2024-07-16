@@ -6,6 +6,8 @@
 
 #include <GL/glew.h>
 
+#define GTEX_VERSION 0
+
 typedef enum {
 	GCTK_TEXTURE_1D				= 0b000,
 	GCTK_TEXTURE_2D				= 0b001,

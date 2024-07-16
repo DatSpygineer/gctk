@@ -18,6 +18,10 @@ typedef struct Version {
 
 #define VERSION(__major__, __minor__, __pitch__, __life_cycle__) ((Version){ __major__, __minor__, __pitch__, __life_cycle__ })
 
+#if defined(GCTK_GAME_NAME) && defined(GCTK_GAME_AUTHOR) && defined(GCTK_GAME_VERSION)
+	#define GctkInitGame(__argc, __argv) GctkInit(__argc, __argv, GCTK_GAME_NAME, GCTK_GAME_AUTHOR, GCTK_GAME_VERSION)
+#endif
+
 GCTK_API_CONST Version GCTK_ENGINE_VERSION;
 
 GCTK_API Version GctkGetGameVersion();

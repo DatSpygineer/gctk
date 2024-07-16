@@ -2,6 +2,7 @@
 #define GCTK_COLLECTIONS_H
 
 #include "gctk/common.h"
+#include "gctk/bithelper.h"
 #include "gctk/str.h"
 
 #if !defined(NDEBUG) || defined(GCTK_ALLOW_MEMORY_LOG)
@@ -102,10 +103,11 @@ typedef struct BinaryWriter {
 		Vector* buffer;
 	};
 	bool is_file;
+	Endianness endianness;
 } BinaryWriter;
 
-GCTK_API BinaryWriter GctkBinaryWriterNewFromFile(FILE* f);
-GCTK_API BinaryWriter GctkBinaryWriterNewFromVector(Vector* vector);
+GCTK_API BinaryWriter GctkBinaryWriterNewFromFile(FILE* f, Endianness endianness);
+GCTK_API BinaryWriter GctkBinaryWriterNewFromVector(Vector* vector, Endianness endianness);
 GCTK_API void GctkBinaryWriterClose(BinaryWriter* writer);
 
 GCTK_API bool GctkBinaryWriterAppend_u8 (BinaryWriter* writer, uint8_t value);
