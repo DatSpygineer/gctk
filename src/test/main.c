@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 	GctkDeleteTexture(&TEXTURE_3);
 	GctkDeleteSprite(&SPRITE);
 	GctkDeleteSprite(&SPRITE_2);
-	GctkDeleteAnimatedSprite(&SPRITE_3);
+	GctkDeleteSprite(&SPRITE_3);
 	GctkDispose();
 
 	return 0;

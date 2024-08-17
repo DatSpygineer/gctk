@@ -46,7 +46,6 @@ static void GctkGlfwErrorCallback(int code, const char* message) {
 }
 
 extern void GctkSprite2DDeleteDefaultShader();
-extern void GctkAnimation2DDeleteDefaultShader();
 
 const Version GCTK_ENGINE_VERSION = VERSION(
 	1, 0, 0, GCTK_VERSION_ALPHA
@@ -349,7 +348,6 @@ void GctkDispose() {
 	if (GCTK_CLOSE_CALLBACK != NULL) GCTK_CLOSE_CALLBACK();
 
 	GctkSprite2DDeleteDefaultShader();
-	GctkAnimation2DDeleteDefaultShader();
 	if (GCTK_WINDOW != NULL) glfwDestroyWindow(GCTK_WINDOW);
 
 	GctkCloseDebugLogger();
