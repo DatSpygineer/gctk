@@ -17,6 +17,7 @@ extern "C" {
 #include "gctk/rendering/texture.h"
 #include "gctk/rendering/sprite.h"
 #include "gctk/rendering/viewport.h"
+#include "gctk/rendering/render_common.h"
 #include "gctk/rendering/render_queue.h"
 
 #ifdef __cplusplus

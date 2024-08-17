@@ -187,6 +187,12 @@ const Allocator* GctkGetDefaultAllocator() {
 Allocator GctkCreateDefaultAllocator(size_t item_size) {
 	return ALLOCATOR(item_size, &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
 }
+const Allocator* GctkSetupDefaultAllocator(Allocator* target, size_t item_size) {
+	if (target->allocate == NULL || target->free == NULL || target->reallocate == NULL || target->item_size == 0) {
+		*target = GctkCreateDefaultAllocator(item_size);
+	}
+	return target;
+}
 
 bool GctkVectorAlloc(Vector* vec, size_t capacity, const Allocator* allocator) {
 	if (allocator == NULL) {

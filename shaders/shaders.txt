@@ -1,0 +1,3 @@
+VERT_FRAG AnimatedSprite gctk_animated_sprite
+VERT_FRAG Sprte2D        gctk_sprite2d
+VERT_FRAG square         square

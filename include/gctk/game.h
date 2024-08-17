@@ -4,6 +4,7 @@
 #include "gctk/common.h"
 #include "gctk/filesys.h"
 #include "gctk/math.h"
+#include "gctk/rendering/render_common.h"
 
 typedef enum VersionLifeCycle {
 	GCTK_VERSION_RELEASE,

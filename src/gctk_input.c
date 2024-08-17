@@ -7,6 +7,7 @@
 
 typedef struct {
 	hash_t hash;
+	char name[128];
 	Input actions[64];
 	size_t action_count;
 	float value, prev_value;
@@ -615,12 +616,19 @@ Input GctkInputFromString(const char* input, int device_id) {
 	return INPUT_NONE;
 }
 
+bool GctkInputMapExists() {
+	char path[GCTK_PATH_MAX] = { 0 };
+	GctkGetUserDirectory(path);
+	GctkPathAppend(path, "inputs.cfg");
+	return GctkPathExists(path);
+}
+
 bool GctkLoadInputMap() {
 	char path[GCTK_PATH_MAX] = { 0 };
 	GctkGetUserDirectory(path);
 	GctkPathAppend(path, "inputs.cfg");
 
-	FILE* f = fopen(path, "r");
+	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_READ, GCTK_FILE_OPEN);
 	if (f == NULL) {
 		GctkLogWarn("Couldn't find input map \"%s\"", path);
 		return false;
@@ -672,6 +680,33 @@ bool GctkLoadInputMap() {
 	if (strlen(key) > 0) {
 		GctkSetInputAction(key, action_count, action);
 	}
+
+	return true;
+}
+
+bool GctkWriteInputMap() {
+	char path[GCTK_PATH_MAX] = { 0 };
+	GctkGetUserDirectory(path);
+	GctkPathAppend(path, "inputs.cfg");
+
+	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_WRITE, GCTK_FILE_OPEN_OR_CREATE);
+	if (f == NULL) {
+		GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Failed to open/create input map file \"%s\"", path);
+		return false;
+	}
+
+	for (size_t i = 0; i < GCTK_INPUT_MAP_COUNT; i++) {
+		fprintf(f, "[%s]\n", GCTK_INPUT_MAP[i].name);
+		for (size_t j = 0; j < GCTK_INPUT_MAP[i].action_count; j++) {
+			char input_name[256] = { 0 };
+			GctkInputToString(input_name, 256, GCTK_INPUT_MAP[i].actions[j]);
+			fprintf(f, "%s\n", input_name);
+		}
+	}
+
+	GctkFileWrite_str(f, "\n");
+	GctkFlushFile(f);
+	GctkCloseFile(f);
 
 	return true;
 }
@@ -739,6 +774,145 @@ void GctkUpdateInputStates() {
 	}
 }
 
+char* GctkInputToString(char* buffer, size_t buffer_size, Input input) {
+	switch (input.device) {
+		case GCTK_DEVICE_NONE: return NULL; break;
+		case GCTK_DEVICE_KEYBOARD: {
+			if (input.input >= GLFW_KEY_0 && input.input <= GLFW_KEY_9) {
+				snprintf(buffer, buffer_size, "KP_%d", input.input);
+				return buffer;
+			}
+
+			if (input.input >= GLFW_KEY_A && input.input <= GLFW_KEY_Z) {
+				snprintf(buffer, buffer_size, "%c", (input.input - GLFW_KEY_A) + 'A');
+				return buffer;
+			}
+
+			switch (input.input) {
+				case GLFW_KEY_SPACE: snprintf(buffer, buffer_size, "SPACE"); return buffer;
+				case GLFW_KEY_APOSTROPHE: snprintf(buffer, buffer_size, "APOSTROPHE"); return buffer;
+				case GLFW_KEY_COMMA: snprintf(buffer, buffer_size, "COMMA"); return buffer;
+				case GLFW_KEY_MINUS: snprintf(buffer, buffer_size, "MINUS"); return buffer;
+				case GLFW_KEY_PERIOD: snprintf(buffer, buffer_size, "PERIOD"); return buffer;
+				case GLFW_KEY_SLASH: snprintf(buffer, buffer_size, "SLASH"); return buffer;
+				case GLFW_KEY_SEMICOLON: snprintf(buffer, buffer_size, "SEMICOLON"); return buffer;
+				case GLFW_KEY_EQUAL: snprintf(buffer, buffer_size, "EQUAL"); return buffer;
+				case GLFW_KEY_LEFT_BRACKET: snprintf(buffer, buffer_size, "LEFT_BRACKET"); return buffer;
+				case GLFW_KEY_BACKSLASH: snprintf(buffer, buffer_size, "BACKSLASH"); return buffer;
+				case GLFW_KEY_RIGHT_BRACKET: snprintf(buffer, buffer_size, "RIGHT_BRACKET"); return buffer;
+				case GLFW_KEY_GRAVE_ACCENT: snprintf(buffer, buffer_size, "GRAVE_ACCENT"); return buffer;
+				case GLFW_KEY_ESCAPE: snprintf(buffer, buffer_size, "ESCAPE"); return buffer;
+				case GLFW_KEY_ENTER: snprintf(buffer, buffer_size, "ENTER"); return buffer;
+				case GLFW_KEY_TAB: snprintf(buffer, buffer_size, "TAB"); return buffer;
+				case GLFW_KEY_BACKSPACE: snprintf(buffer, buffer_size, "BACKSPACE"); return buffer;
+				case GLFW_KEY_INSERT: snprintf(buffer, buffer_size, "INSERT"); return buffer;
+				case GLFW_KEY_DELETE: snprintf(buffer, buffer_size, "DELETE"); return buffer;
+				case GLFW_KEY_RIGHT: snprintf(buffer, buffer_size, "RIGHT"); return buffer;
+				case GLFW_KEY_LEFT: snprintf(buffer, buffer_size, "LEFT"); return buffer;
+				case GLFW_KEY_UP: snprintf(buffer, buffer_size, "UP"); return buffer;
+				case GLFW_KEY_DOWN: snprintf(buffer, buffer_size, "DOWN"); return buffer;
+				case GLFW_KEY_PAGE_UP: snprintf(buffer, buffer_size, "PAGE_UP"); return buffer;
+				case GLFW_KEY_PAGE_DOWN: snprintf(buffer, buffer_size, "PAGE_DOWN"); return buffer;
+				case GLFW_KEY_HOME: snprintf(buffer, buffer_size, "HOME"); return buffer;
+				case GLFW_KEY_END: snprintf(buffer, buffer_size, "END"); return buffer;
+				case GLFW_KEY_CAPS_LOCK: snprintf(buffer, buffer_size, "CAPS_LOCK"); return buffer;
+				case GLFW_KEY_SCROLL_LOCK: snprintf(buffer, buffer_size, "SCROLL_LOCK"); return buffer;
+				case GLFW_KEY_NUM_LOCK: snprintf(buffer, buffer_size, "NUM_LOCK"); return buffer;
+				case GLFW_KEY_PRINT_SCREEN: snprintf(buffer, buffer_size, "PRINT_SCREEN"); return buffer;
+				case GLFW_KEY_PAUSE: snprintf(buffer, buffer_size, "PAUSE"); return buffer;
+				case GLFW_KEY_KP_DECIMAL: snprintf(buffer, buffer_size, "KP_DECIMAL"); return buffer;
+				case GLFW_KEY_KP_DIVIDE: snprintf(buffer, buffer_size, "KP_DIVIDE"); return buffer;
+				case GLFW_KEY_KP_MULTIPLY: snprintf(buffer, buffer_size, "KP_MULTIPLY"); return buffer;
+				case GLFW_KEY_KP_SUBTRACT: snprintf(buffer, buffer_size, "KP_SUBTRACT"); return buffer;
+				case GLFW_KEY_KP_ADD: snprintf(buffer, buffer_size, "KP_ADD"); return buffer;
+				case GLFW_KEY_KP_ENTER: snprintf(buffer, buffer_size, "KP_ENTER"); return buffer;
+				case GLFW_KEY_KP_EQUAL: snprintf(buffer, buffer_size, "KP_EQUAL"); return buffer;
+				case GLFW_KEY_LEFT_SHIFT: snprintf(buffer, buffer_size, "LEFT_SHIFT"); return buffer;
+				case GLFW_KEY_LEFT_CONTROL: snprintf(buffer, buffer_size, "LEFT_CONTROL"); return buffer;
+				case GLFW_KEY_LEFT_ALT: snprintf(buffer, buffer_size, "LEFT_ALT"); return buffer;
+				case GLFW_KEY_LEFT_SUPER: snprintf(buffer, buffer_size, "LEFT_SUPER"); return buffer;
+				case GLFW_KEY_RIGHT_SHIFT: snprintf(buffer, buffer_size, "RIGHT_SHIFT"); return buffer;
+				case GLFW_KEY_RIGHT_CONTROL: snprintf(buffer, buffer_size, "RIGHT_CONTROL"); return buffer;
+				case GLFW_KEY_RIGHT_ALT: snprintf(buffer, buffer_size, "RIGHT_ALT"); return buffer;
+				case GLFW_KEY_RIGHT_SUPER: snprintf(buffer, buffer_size, "RIGHT_SUPER"); return buffer;
+				case GLFW_KEY_MENU: snprintf(buffer, buffer_size, "MENU"); return buffer;
+				default: return NULL;
+			}
+		}
+		case GCTK_DEVICE_MOUSE_BUTTON: {
+			switch (input.input) {
+				case 0: snprintf(buffer, buffer_size, "MB_LEFT"); return buffer;
+				case 1: snprintf(buffer, buffer_size, "MB_RIGHT"); return buffer;
+				case 2: snprintf(buffer, buffer_size, "MB_MIDDLE"); return buffer;
+				default: snprintf(buffer, buffer_size, "MB_%d", input.input); return buffer;
+			}
+		}
+		case GCTK_DEVICE_MOUSE_WHEEL: {
+			switch (input.input) {
+				case GCTK_INPUT_AXIS_X_PLUS: snprintf(buffer, buffer_size, "MWHEEL_X+"); return buffer;
+				case GCTK_INPUT_AXIS_X_MINUS: snprintf(buffer, buffer_size, "MWHEEL_X-"); return buffer;
+				case GCTK_INPUT_AXIS_Y_PLUS: snprintf(buffer, buffer_size, "MWHEEL+"); return buffer;
+				case GCTK_INPUT_AXIS_Y_MINUS: snprintf(buffer, buffer_size, "MWHEEL-"); return buffer;
+				default: return NULL;
+			}
+		}
+		case GCTK_DEVICE_MOUSE_MOTION: {
+			switch (input.input) {
+				case GCTK_MOUSE_X_PLUS: snprintf(buffer, buffer_size, "MOUSE_X+"); return buffer;
+				case GCTK_MOUSE_X_MINUS: snprintf(buffer, buffer_size, "MOUSE_X-"); return buffer;
+				case GCTK_MOUSE_Y_PLUS: snprintf(buffer, buffer_size, "MOUSE_Y+"); return buffer;
+				case GCTK_MOUSE_Y_MINUS: snprintf(buffer, buffer_size, "MOUSE_Y-"); return buffer;
+				default: return NULL;
+			}
+		}
+		case GCTK_DEVICE_GAMEPAD_BUTTON: {
+			switch (input.input) {
+				case GLFW_GAMEPAD_BUTTON_A: snprintf(buffer, buffer_size, "GPAD_BUTTON_A"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_B: snprintf(buffer, buffer_size, "GPAD_BUTTON_B"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_X: snprintf(buffer, buffer_size, "GPAD_BUTTON_X"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_Y: snprintf(buffer, buffer_size, "GPAD_BUTTON_Y"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_BACK: snprintf(buffer, buffer_size, "GPAD_BUTTON_BACK"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_START: snprintf(buffer, buffer_size, "GPAD_BUTTON_START"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_GUIDE: snprintf(buffer, buffer_size, "GPAD_BUTTON_GUIDE"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_LEFT_BUMPER: snprintf(buffer, buffer_size, "GPAD_BUTTON_LB"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER: snprintf(buffer, buffer_size, "GPAD_BUTTON_RB"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_LEFT_THUMB: snprintf(buffer, buffer_size, "GPAD_BUTTON_LT"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_RIGHT_THUMB: snprintf(buffer, buffer_size, "GPAD_BUTTON_RT"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_DPAD_UP: snprintf(buffer, buffer_size, "GPAD_BUTTON_DPAD_UP"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_DPAD_DOWN: snprintf(buffer, buffer_size, "GPAD_BUTTON_DPAD_DOWN"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_DPAD_LEFT: snprintf(buffer, buffer_size, "GPAD_BUTTON_DPAD_LEFT"); return buffer;
+				case GLFW_GAMEPAD_BUTTON_DPAD_RIGHT: snprintf(buffer, buffer_size, "GPAD_BUTTON_DPAD_RIGHT"); return buffer;
+				default: return NULL;
+			}
+		}
+		case GCTK_DEVICE_GAMEPAD_AXIS: {
+			switch (input.input) {
+				case GLFW_GAMEPAD_AXIS_LEFT_X: snprintf(buffer, buffer_size, "GPAD_AXIS_LX"); return buffer;
+				case GLFW_GAMEPAD_AXIS_LEFT_Y: snprintf(buffer, buffer_size, "GPAD_AXIS_LY"); return buffer;
+				case GLFW_GAMEPAD_AXIS_RIGHT_X: snprintf(buffer, buffer_size, "GPAD_AXIS_RX"); return buffer;
+				case GLFW_GAMEPAD_AXIS_RIGHT_Y: snprintf(buffer, buffer_size, "GPAD_AXIS_RY"); return buffer;
+				case GLFW_GAMEPAD_AXIS_LEFT_TRIGGER: snprintf(buffer, buffer_size, "GPAD_AXIS_LT"); return buffer;
+				case GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER: snprintf(buffer, buffer_size, "GPAD_AXIS_RT"); return buffer;
+				default: snprintf(buffer, buffer_size, "GPAD_AXIS_%d", input.input); return buffer;
+			}
+		}
+		case GCTK_DEVICE_GAMEPAD_HAT: {
+			switch (input.input) {
+				case GLFW_HAT_UP: snprintf(buffer, buffer_size, "GPAD_HAT_UP"); return buffer;
+				case GLFW_HAT_RIGHT_UP: snprintf(buffer, buffer_size, "GPAD_HAT_RIGHT_UP"); return buffer;
+				case GLFW_HAT_RIGHT: snprintf(buffer, buffer_size, "GPAD_HAT_RIGHT"); return buffer;
+				case GLFW_HAT_RIGHT_DOWN: snprintf(buffer, buffer_size, "GPAD_HAT_RIGHT_DOWN"); return buffer;
+				case GLFW_HAT_DOWN: snprintf(buffer, buffer_size, "GPAD_HAT_DOWN"); return buffer;
+				case GLFW_HAT_LEFT_DOWN: snprintf(buffer, buffer_size, "GPAD_HAT_LEFT_DOWN"); return buffer;
+				case GLFW_HAT_LEFT: snprintf(buffer, buffer_size, "GPAD_HAT_LEFT"); return buffer;
+				case GLFW_HAT_LEFT_UP: snprintf(buffer, buffer_size, "GPAD_HAT_LEFT_UP"); return buffer;
+				default: return NULL;
+			}
+		}
+	}
+	return NULL;
+}
+
 Vec2 GctkGetMousePosition() {
 	return GCTK_MOUSE_POS;
 }
@@ -755,6 +929,11 @@ bool GctkSetInputAction(const char* action, size_t input_count, const Input* inp
 		return false;
 	}
 
+	if (action == NULL || strlen(action) == 0) {
+		GctkLogError(GCTK_ERROR_UNDEFINED, "Failed to set input action: Input action id is null or empty!");
+		return false;
+	}
+
 	hash_t hash = GctkStrHash(action);
 	bool found = false;
 	for (size_t i = 0; i < GCTK_INPUT_MAP_COUNT; i++) {
@@ -767,6 +946,7 @@ bool GctkSetInputAction(const char* action, size_t input_count, const Input* inp
 			};
 			memset(GCTK_INPUT_MAP[i].actions, 0, sizeof(Input) * 64);
 			memcpy(GCTK_INPUT_MAP[i].actions, inputs, sizeof(Input) * input_count);
+			GctkStrCpy(GCTK_INPUT_MAP[i].name, action, 128);
 			found = true;
 		}
 	}
@@ -784,6 +964,7 @@ bool GctkSetInputAction(const char* action, size_t input_count, const Input* inp
 		};
 		memset(GCTK_INPUT_MAP[GCTK_INPUT_MAP_COUNT].actions, 0, sizeof(Input) * 64);
 		memcpy(GCTK_INPUT_MAP[GCTK_INPUT_MAP_COUNT].actions, inputs, sizeof(Input) * input_count);
+		GctkStrCpy(GCTK_INPUT_MAP[GCTK_INPUT_MAP_COUNT].name, action, 128);
 		GCTK_INPUT_MAP_COUNT++;
 	}
 

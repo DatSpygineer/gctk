@@ -7,7 +7,7 @@
   - [x] Implemented
   - [x] Tested
 - Animated Sprites
-  - [x] Implemented
+  - [ ] Implemented
   - [ ] Tested
 - Tilemaps
   - [ ] Implemented

@@ -26,12 +26,15 @@ typedef struct Allocator {
 #define ALLOCATOR(__item_size, __alloc_fn, __realloc_fn, __free) \
 ((Allocator){ .item_size = (__item_size), .allocate = (__alloc_fn), .reallocate = (__realloc_fn), .free = (__free) })
 
+#define NULL_ALLOCATOR ALLOCATOR(0, NULL, NULL, NULL)
+
 GCTK_API void* GctkAlloc(const Allocator* allocator, size_t count);
 GCTK_API void* GctkRealloc(const Allocator* allocator, void** ptr, size_t original_count, size_t new_count);
 GCTK_API void  GctkFree(const Allocator* allocator, void** ptr);
 
 GCTK_API const Allocator* GctkGetDefaultAllocator();
 GCTK_API Allocator GctkCreateDefaultAllocator(size_t item_size);
+GCTK_API const Allocator* GctkSetupDefaultAllocator(Allocator* target, size_t item_size);
 
 typedef struct Vector {
 	void* data;

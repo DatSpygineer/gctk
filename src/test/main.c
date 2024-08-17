@@ -6,8 +6,8 @@ static Texture TEXTURE;
 static Texture TEXTURE_2;
 static Texture TEXTURE_3;
 
-static Transform2D TRANSFORM = { .position = VEC2_ZERO, .scale = VEC2(100, 100) };
-static Transform2D TRANSFORM_2 = { .position = VEC2_ZERO, .scale = VEC2(100, 100) };
+static Transform2D TRANSFORM   = { .position = VEC2_ZERO,    .scale = VEC2(100, 100) };
+static Transform2D TRANSFORM_2 = { .position = VEC2_ZERO,    .scale = VEC2(100, 100) };
 static Transform2D TRANSFORM_3 = { .position = VEC2(200, 0), .scale = VEC2(100, 100) };
 static Sprite SPRITE;
 static Sprite SPRITE_2;
@@ -28,12 +28,46 @@ static void update(double delta) {
 	GctkRenderEnqueueSprite2D(&SPRITE_3, COLOR_WHITE, TRANSFORM_3);
 }
 
+static void render(double delta) {
+
+}
+
 int main(int argc, char** argv) {
 	if (!GctkInitGame(argc, argv)) {
 		return GctkLastErrorCode();
 	}
 
+	if (!GctkInputMapExists()) {
+		GctkSetInputActionVA("MoveLeft", 1, (Input){
+			GLFW_KEY_A,
+			GCTK_DEVICE_KEYBOARD,
+			0
+		});
+		GctkSetInputActionVA("MoveRight", 1, (Input){
+			GLFW_KEY_D,
+			GCTK_DEVICE_KEYBOARD,
+			0
+		});
+		GctkSetInputActionVA("MoveUp", 1, (Input){
+			GLFW_KEY_W,
+			GCTK_DEVICE_KEYBOARD,
+			0
+		});
+		GctkSetInputActionVA("MoveDown", 1, (Input){
+			GLFW_KEY_S,
+			GCTK_DEVICE_KEYBOARD,
+			0
+		});
+		GctkSetInputActionVA("Test", 1, (Input){
+			GLFW_KEY_ENTER,
+			GCTK_DEVICE_KEYBOARD,
+			0
+		});
+		GctkWriteInputMap();
+	}
+
 	GctkSetUpdateCallback(&update);
+	GctkSetRenderCallback(&render);
 
 	GctkAssertFatal(GctkLoadTextureFromFile(&TEXTURE, "../test.gtex"), GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
 	GctkAssertFatal(GctkLoadImageFromFile(&TEXTURE_2, "../test.png", GCTK_IMAGE_FLAG_POINT_FILTER),
@@ -42,11 +76,11 @@ int main(int argc, char** argv) {
 					GCTK_ERROR_GL_RUNTIME, "Failed to load texture!");
 
 	GctkAssertFatal(GctkCreateSprite(&SPRITE, GctkSprite2DDefaultShader(), &TEXTURE),
-					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite!");
+					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite 1!");
 	GctkAssertFatal(GctkCreateSprite(&SPRITE_2, GctkSprite2DDefaultShader(), &TEXTURE_2),
-					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite!");
+					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite 2!");
 	GctkAssertFatal(GctkCreateSprite(&SPRITE_3, GctkSprite2DDefaultShader(), &TEXTURE_3),
-					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite!");
+					GCTK_ERROR_GL_RUNTIME, "Failed to create sprite 3!");
 
 	Vec2i size = GctkGetWindowSize();
 	TRANSFORM.position = VEC2(((float)size.x) * 0.5f - TRANSFORM.scale.x * 0.5f,
@@ -60,7 +94,7 @@ int main(int argc, char** argv) {
 	GctkDeleteTexture(&TEXTURE_3);
 	GctkDeleteSprite(&SPRITE);
 	GctkDeleteSprite(&SPRITE_2);
-	GctkDeleteSprite(&SPRITE_3);
+	GctkDeleteAnimatedSprite(&SPRITE_3);
 	GctkDispose();
 
 	return 0;

@@ -8,6 +8,9 @@
 #include <cglm/quat.h>
 
 #define GCTK_PI 3.141592653589793
+#define GCTK_2PI 6.283185307179586
+#define GCTK_PI_2 1.5707963267948966
+
 #define GCTK_DEG_TO_RAD_VALUE 0.017453292519943295
 #define GCTK_RAD_TO_DEG_VALUE 57.29577951308232
 
@@ -17,6 +20,11 @@
 #define GctkMax(__x__, __max__) ((__x__) > (__max__) ? (__max__) : (__x__))
 #define GctkMin(__x__, __min__) ((__x__) < (__min__) ? (__min__) : (__x__))
 #define GctkClamp(__x__, __min__, __max__) ((__x__) > (__max__) ? (__max__) : ((__x__) < (__min__) ? (__min__) : (__x__)))
+
+#define GctkAbs(__x__) (((__x__) < 0) ? -(__x__) : (__x__))
+
+GCTK_API float GctkLimitAngleDeg(float value);
+GCTK_API float GctkLimitAngleRad(float value);
 
 typedef union Vec2i {
 	struct { int x, y; };

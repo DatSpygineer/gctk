@@ -68,16 +68,24 @@ typedef struct Texture {
 GCTK_API GLuint GctkGetGLTarget(TextureTarget target);
 
 GCTK_API bool GctkLoadImage(Texture* texture, const uint8_t* data, size_t data_size, ImageLoaderFlags flags);
+GCTK_API bool GctkLoadImageStoreData(Texture* texture, const uint8_t* data, size_t data_size, ImageLoaderFlags flags, uint8_t** data_out, size_t* data_out_size);
 GCTK_API bool GctkLoadImageFromFile(Texture* texture, const char* path, ImageLoaderFlags flags);
+GCTK_API bool GctkLoadImageFromFileStoreData(Texture* texture, const char* path, ImageLoaderFlags flags, uint8_t** data_out, size_t* data_out_size);
+
+GCTK_API bool GctkLoadImageStrip(Texture* texture, const uint8_t* data, size_t data_size, ImageLoaderFlags flags);
+GCTK_API bool GctkLoadImageStripFromFile(Texture* texture, const char* path, ImageLoaderFlags flags);
 
 GCTK_API bool GctkLoadTexture(Texture* texture, const uint8_t* data, size_t data_size);
+GCTK_API bool GctkLoadTextureStoreData(Texture* texture, const uint8_t* data, size_t data_size, uint8_t** data_out, size_t* data_out_size);
 GCTK_API bool GctkLoadTextureFromFile(Texture* texture, const char* path);
+GCTK_API bool GctkLoadTextureFromFileStoreData(Texture* texture, const char* path, uint8_t** data_out, size_t* data_out_size);
 
 GCTK_API bool GctkWriteTexture(const Texture* texture, uint8_t* buffer, size_t buffer_max_size, bool rle);
 GCTK_API bool GctkWriteTextureToFile(const Texture* texture, const char* path, bool rle);
 
 GCTK_API void GctkDeleteTexture(Texture* texture);
 GCTK_API void GctkBindTexture(const Texture* texture);
+GCTK_API void GctkUnbindTexuture(TextureTarget target);
 
 GCTK_API Vec2 GctkTextureSize(const Texture* texture);
 GCTK_API Vec3 GctkTextureSize3D(const Texture* texture);

@@ -1,5 +1,18 @@
 #include "gctk/math.h"
 
+float GctkLimitAngleDeg(float value) {
+	if (value < 0.0f) {
+		return 360.0f - fmodf(value, 360.0f);
+	}
+	return fmodf(value, 360.0f);
+}
+float GctkLimitAngleRad(float value) {
+	if (value < 0.0f) {
+		return GCTK_2PI + fmodf(value, GCTK_2PI);
+	}
+	return fmodf(value, GCTK_2PI);
+}
+
 Vec2 Vec2FromVec2i(Vec2i value) {
 	return VEC2( (float)value.x, (float)value.y );
 }

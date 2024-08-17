@@ -102,14 +102,8 @@ bool GctkRenderDequeueAndRender() {
 		case GCTK_RENDERCALL_SPRITE_2D: {
 			GctkDrawSprite(render->sprite, render->color, &render->transform2D);
 		} break;
-		case GCTK_RENDERCALL_ANIMATED_SPRITE_2D: {
-			GctkDrawAnimatedSprite(render->animated_sprite, render->color, &render->transform2D);
-		} break;
 		case GCTK_RENDERCALL_SPRITE_3D: {
 			GctkDrawSprite(render->sprite, render->color, &render->transform3D);
-		} break;
-		case GCTK_RENDERCALL_ANIMATED_SPRITE_3D: {
-			GctkDrawAnimatedSprite(render->animated_sprite, render->color, &render->transform3D);
 		} break;
 		case GCTK_RENDERCALL_MESH: {
 			GctkDrawMesh(render->mesh, render->transform3D.matrix, GctkGetViewportMatrix());

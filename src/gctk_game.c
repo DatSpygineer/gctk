@@ -25,7 +25,7 @@ static char GCTK_BASE_DIR[GCTK_PATH_MAX] = { 0 };
 static char GCTK_NAME[512] = { 0 };
 static char GCTK_AUTHOR[512] = { 0 };
 
-static Version GCTK_GAME_VERSION = {0 };
+static Version GCTK_GAME_VERSION = { 0 };
 static void (*GCTK_UPDATE_CALLBACK)(double) = NULL;
 static void (*GCTK_RENDER_CALLBACK)(double) = NULL;
 static void (*GCTK_PRE_RENDER_CALLBACK)(double) = NULL;
@@ -46,6 +46,7 @@ static void GctkGlfwErrorCallback(int code, const char* message) {
 }
 
 extern void GctkSprite2DDeleteDefaultShader();
+extern void GctkAnimation2DDeleteDefaultShader();
 
 const Version GCTK_ENGINE_VERSION = VERSION(
 	1, 0, 0, GCTK_VERSION_ALPHA
@@ -141,7 +142,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 
 		const cJSON* monitor_idx = cJSON_GetObjectItem(json, "monitor_idx");
 		if (monitor_idx) {
-			if (cJSON_IsNumber(fullscreen)) {
+			if (cJSON_IsNumber(monitor_idx)) {
 				GCTK_CONFIG.monitor_idx = (int)monitor_idx->valuedouble;
 			} else {
 				GctkLogError(GCTK_ERROR_PARSE_FAILED, "Failed to get monitor_idx! Expected a numeric value!");
@@ -162,7 +163,6 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 	}
 
 	glfwSetErrorCallback(&GctkGlfwErrorCallback);
-
 	GctkSetupDebugLogger();
 
 	if (glfwInit() == GLFW_FALSE) {
@@ -204,8 +204,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 
 	glfwSetWindowSizeCallback(GCTK_WINDOW, &GctkWindowResizeCallback);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GctkSetBlendmode(GCTK_BLEND_ALPHA_MIX);
 
 	GctkSetupInputCallbacks();
 	GctkLoadInputMap();
@@ -350,6 +349,7 @@ void GctkDispose() {
 	if (GCTK_CLOSE_CALLBACK != NULL) GCTK_CLOSE_CALLBACK();
 
 	GctkSprite2DDeleteDefaultShader();
+	GctkAnimation2DDeleteDefaultShader();
 	if (GCTK_WINDOW != NULL) glfwDestroyWindow(GCTK_WINDOW);
 
 	GctkCloseDebugLogger();
