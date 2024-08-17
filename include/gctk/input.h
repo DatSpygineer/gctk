@@ -46,6 +46,13 @@ typedef enum {
 	GCTK_INPUT_AXIS_Z_MINUS
 } InputAxis;
 
+typedef enum {
+	GCTK_MOUSE_X_PLUS,
+	GCTK_MOUSE_X_MINUS,
+	GCTK_MOUSE_Y_PLUS,
+	GCTK_MOUSE_Y_MINUS
+} MouseAxis;
+
 typedef struct {
 	int input;
 	InputDevice device;
@@ -60,8 +67,12 @@ typedef struct {
 #define INPUT_IS_NONE(__input__) ((__input__).input == 0 && (__input__).device == 0 && (__input__).device_id == 0)
 
 GCTK_API Input GctkInputFromString(const char* input, int device_id);
+GCTK_API char* GctkInputToString(char* buffer, size_t buffer_size, Input input);
+
+GCTK_API bool GctkInputMapExists();
 
 GCTK_API bool GctkLoadInputMap();
+GCTK_API bool GctkWriteInputMap();
 
 GCTK_API void GctkSetupInputCallbacks();
 GCTK_API void GctkUpdateInputStates();
