@@ -30,6 +30,7 @@ static void (*GCTK_UPDATE_CALLBACK)(double) = NULL;
 static void (*GCTK_RENDER_CALLBACK)(double) = NULL;
 static void (*GCTK_PRE_RENDER_CALLBACK)(double) = NULL;
 static void (*GCTK_POST_RENDER_CALLBACK)(double) = NULL;
+static bool (*GCTK_CLOSING_CALLBACK)() = NULL;
 static void (*GCTK_CLOSE_CALLBACK)() = NULL;
 
 static double GCTK_LAST_TIME = 0, GCTK_DELTA_TIME = 0;
@@ -37,6 +38,8 @@ static double GCTK_LAST_TIME = 0, GCTK_DELTA_TIME = 0;
 static Color GCTK_BACKGROUND_COLOR = COLOR(0.25f, 0.5f, 1.0f, 1.0f);
 
 static GameConfig GCTK_CONFIG;
+
+static bool GCTK_INITIALZIED = false;
 
 static void GctkWindowResizeCallback(GLFWwindow* window, int width, int height) {
 	GctkUpdateViewport(width, height);
@@ -79,7 +82,15 @@ int GctkGetVersionString(char* buffer, size_t max_size, const Version* version) 
 	return result + (int)strlen(lc);
 }
 
+bool GctkIsInitialized() {
+	return GCTK_INITIALZIED;
+}
+
 bool GctkInit(int argc, char** argv, const char* name, const char* author, Version game_version) {
+	if (GCTK_INITIALZIED) {
+		return false;
+	}
+
 	GCTK_GAME_VERSION = game_version;
 	GctkStrCpy(GCTK_NAME, name, 512);
 	GctkStrCpy(GCTK_AUTHOR, author, 512);
@@ -212,6 +223,7 @@ bool GctkInit(int argc, char** argv, const char* name, const char* author, Versi
 
 	GctkSetupViewport2D(GCTK_CONFIG.resolution.x, GCTK_CONFIG.resolution.y, VEC2_ZERO, -100, 100);
 
+	GCTK_INITIALZIED = true;
 	return true;
 }
 
@@ -240,7 +252,13 @@ bool GctkUpdate() {
 	glfwSwapBuffers(GCTK_WINDOW);
 	GCTK_LAST_TIME = time;
 
-	return !glfwWindowShouldClose(GCTK_WINDOW);
+	if (glfwWindowShouldClose(GCTK_WINDOW)) {
+		if (GCTK_CLOSING_CALLBACK != NULL) {
+			return !GCTK_CLOSING_CALLBACK();
+		}
+		return false;
+	}
+	return true;
 }
 
 bool GctkLoadSettings() {
@@ -389,6 +407,9 @@ void GctkSetPreRenderCallback(void (*callback)(double)) {
 }
 void GctkSetPostRenderCallback(void (*callback)(double)) {
 	GCTK_POST_RENDER_CALLBACK = callback;
+}
+void GctkSetClosingCallback(bool (*callback)()) {
+	GCTK_CLOSING_CALLBACK = callback;
 }
 void GctkSetCloseCallback(void (*callback)()) {
 	GCTK_CLOSE_CALLBACK = callback;

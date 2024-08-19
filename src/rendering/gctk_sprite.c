@@ -71,6 +71,10 @@ static float VERTS[] = {
 
 extern Mat4 GctkGetViewportMatrix();
 
+bool GctkIsSpriteValid(const Sprite* sprite) {
+	return sprite != NULL && sprite->mesh.vbo != 0 && sprite->mesh.vao != 0 && sprite->texture->id != 0;
+}
+
 bool GctkCreateSprite(Sprite* sprite, const Shader* shader, const Texture* texture) {
 	if (texture->target != GCTK_TEXTURE_2D) {
 		GctkLogError(GCTK_ERROR_TEXTURE_INVALID_TARGET, "Failed to create sprite: Invalid texture target! Expected 2D");

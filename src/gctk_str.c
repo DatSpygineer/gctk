@@ -3,6 +3,8 @@
 
 #define GctkMax(__x__, __max__) ((__x__) > (__max__) ? (__max__) : (__x__))
 
+hash_t (*GctkStrHashFunction)(const char *str) = NULL;
+
 char* GctkStrCpy(char* trg, const char* source, size_t max_size) {
 	return GctkStrCpySlice(trg, source, max_size, strlen(source));
 }
@@ -231,24 +233,8 @@ ssize_t GctkStrFindAnyLastNot(const char* str, const char* chars) {
 	return GCTK_NOT_FOUND;
 }
 
-uint32_t GctkHashCRC32(const uint8_t* data, size_t data_size) {
-	uint32_t crc = 0xFFFFFFFF;
-	for (size_t i = 0; i < data_size; i++) {
-		uint8_t byte = data[i];
-		crc = crc ^ byte;
-		for (int j = 0; j < 8; j++) {
-			if (crc & 1) {
-				crc = (crc >> 1) ^ GCTK_CRC32_POLY;
-			} else {
-				crc = crc >> 1;
-			}
-		}
-	}
-	return ~crc;
-}
-
 hash_t GctkStrHash(const char* cstr) {
-	return (hash_t)GCTK_STR_HASH_METHOD((const uint8_t*)cstr, strlen(cstr));
+
 }
 
 void* GctkMemDup(const void* original, size_t size, size_t count) {

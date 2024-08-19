@@ -14,22 +14,21 @@ GCTK_API void GctkCountDealloc(void* ptr);
 
 typedef void* (*GctkAllocatorFn)(size_t count, size_t item_size);
 typedef void* (*GctkReallocatorFn)(void** ptr, size_t original_count, size_t new_count, size_t item_size);
-typedef void (*GctkFreeFn)(void** ptr);
+typedef void  (*GctkFreeFn)(void** ptr);
 
 typedef struct Allocator {
-	size_t item_size;
 	GctkAllocatorFn allocate;
 	GctkReallocatorFn reallocate;
 	GctkFreeFn free;
 } Allocator;
 
-#define ALLOCATOR(__item_size, __alloc_fn, __realloc_fn, __free) \
-((Allocator){ .item_size = (__item_size), .allocate = (__alloc_fn), .reallocate = (__realloc_fn), .free = (__free) })
+#define ALLOCATOR(__alloc_fn, __realloc_fn, __free) \
+((Allocator){ .allocate = (__alloc_fn), .reallocate = (__realloc_fn), .free = (__free) })
 
 #define NULL_ALLOCATOR ALLOCATOR(0, NULL, NULL, NULL)
 
-GCTK_API void* GctkAlloc(const Allocator* allocator, size_t count);
-GCTK_API void* GctkRealloc(const Allocator* allocator, void** ptr, size_t original_count, size_t new_count);
+GCTK_API void* GctkAlloc(const Allocator* allocator, size_t item_size, size_t count);
+GCTK_API void* GctkRealloc(const Allocator* allocator, void** ptr, size_t item_size, size_t original_count, size_t new_count);
 GCTK_API void  GctkFree(const Allocator* allocator, void** ptr);
 
 GCTK_API const Allocator* GctkGetDefaultAllocator();
@@ -38,12 +37,12 @@ GCTK_API const Allocator* GctkSetupDefaultAllocator(Allocator* target, size_t it
 
 typedef struct Vector {
 	void* data;
-	size_t capacity, count;
+	size_t capacity, count, item_size;
 	const Allocator* allocator;
 	void (*item_remove_callback)(void* ptr, size_t size);
 } Vector;
 
-GCTK_API bool GctkVectorAlloc(Vector* vec, size_t capacity, const Allocator* allocator);
+GCTK_API bool GctkVectorAlloc(Vector* vec, size_t capacity, size_t item_size, const Allocator* allocator);
 GCTK_API void GctkVectorFree (Vector* vec);
 
 GCTK_API bool GctkVectorAddItem   (Vector* vec, const void* data, size_t count);
@@ -71,34 +70,8 @@ GCTK_API bool GctkVectorWrite_f32(Vector* vec, float value);
 GCTK_API bool GctkVectorWrite_f64(Vector* vec, double value);
 GCTK_API bool GctkVectorWrite_str(Vector* vec, const char* value);
 
-typedef struct HashMapPair {
-	hash_t hash;
-	void* data;
-} HashMapPair;
-
-typedef struct HashMap {
-	HashMapPair* pairs;
-	size_t capacity, count;
-	const Allocator* item_allocator;
-} HashMap;
-
-GCTK_API bool GctkHashMapAlloc(HashMap* map, size_t capacity, const Allocator* item_allocator);
-GCTK_API bool GctkHashMapFree (HashMap* map);
-
-GCTK_API ssize_t GctkHashMapFind      (const HashMap* map, const char* key);
-GCTK_API ssize_t GctkHashMapFindByHash(const HashMap* map, hash_t hash);
-
-GCTK_API HashMapPair* GctkHashMapGet                 (HashMap* map, const char* key);
-GCTK_API const HashMapPair* GctkHashMapGetConst      (const HashMap* map, const char* key);
-GCTK_API HashMapPair* GctkHashMapGetByHash           (HashMap* map, hash_t hash);
-GCTK_API const HashMapPair* GctkHashMapGetByHashConst(const HashMap* map, hash_t hash);
-
-GCTK_API bool GctkHashMapAdd         (HashMap* map, const char* key, const void* data);
-GCTK_API bool GctkHashMapAddWithHash (HashMap* map, hash_t hash, const void* data);
-GCTK_API bool GctkHashMapRemove      (HashMap* map, const char* key);
-GCTK_API bool GctkHashMapRemoveByHash(HashMap* map, hash_t hash);
-GCTK_API bool GctkHashMapReserve     (HashMap* map, size_t new_capacity);
-GCTK_API bool GctkHashMapClear       (HashMap* map);
+GCTK_API ssize_t GctkVectorSeek(const Vector* vec, const void* data, size_t size);
+#define GctkVectorContains(__vec__, __data__, __data_size__) (GctkVectorSeek(__vec__, __data__, __data_size__) >= 0)
 
 typedef struct BinaryWriter {
 	union {

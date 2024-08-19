@@ -8,7 +8,7 @@ project(gctk C)
 option(GCTK_ENABLE_LUA "Should GCTk use Lua bindings" OFF)
 option(GCTK_ENABLE_FLUIDSYNTH "Should GCTk link fluidsynth" OFF)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 11)
 
 if (WIN32)
 	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
@@ -112,4 +112,4 @@ function (gctk_add_game_static EXE_NAME NAME AUTHOR VERSION_MAJOR VERSION_MINOR 
 endfunction()
 
 gctk_add_game(gctk_test "Test" "Gctk" 1 0 0 GCTK_VERSION_RELEASE ${CMAKE_CURRENT_LIST_DIR}/src/test/main.c)
-#add_subdirectory(tools)
+add_subdirectory(tools)

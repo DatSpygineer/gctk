@@ -18,11 +18,13 @@ GLuint GctkGetGLTarget(TextureTarget target) {
 		case GCTK_TEXTURE_2D_ARRAY: 		return GL_TEXTURE_2D_ARRAY;
 		case GCTK_TEXTURE_CUBEMAP_ARRAY:	return GL_TEXTURE_CUBE_MAP_ARRAY;
 	}
+	GctkLogFatal(GCTK_ERROR_OUT_OF_RANGE, "Texture target is out of range! Target index must be < 8, got %d", target);
+	return GL_TEXTURE_2D;
 }
 
 static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data_size,
-							  int width, int height, int depth, ImageLoaderFlags flags, TextureTarget target,
-							  TextureFormat format, uint8_t** data_out, size_t* data_out_size
+                              int width, int height, int depth, ImageLoaderFlags flags, TextureTarget target,
+                              TextureFormat format, uint8_t** data_out, size_t* data_out_size
 ) {
 	if (texture == NULL) {
 		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Texture output pointer is NULL");
@@ -111,7 +113,7 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 	static bool result = true;
 	result = true;
 
-	GLuint gl_format;
+	GLuint gl_format = GL_RGBA;
 	switch (format) {
 		case GCTK_GRAYSCALE: {
 			gl_format = GL_R;
@@ -191,6 +193,9 @@ static bool GctkLoadGLTexture(Texture* texture, const uint8_t* data, size_t data
 	return result;
 }
 
+bool GctkIsTextureValid(const Texture* texture) {
+	return texture != NULL && texture->id;
+}
 bool GctkLoadImage(Texture* texture, const uint8_t* data, size_t data_size, ImageLoaderFlags flags) {
 	return GctkLoadImageStoreData(texture, data, data_size, flags, NULL, NULL);
 }
@@ -342,7 +347,7 @@ bool GctkLoadTextureStoreData(Texture* texture, const uint8_t* data, size_t data
 		}
 
 		if (format & GCTK_WITH_RLE) {
-			size_t packet_size;
+			size_t packet_size = 0;
 			switch ((TextureFormat)(format & ~GCTK_WITH_RLE)) {
 				case GCTK_INDEXED_8:
 				case GCTK_GRAYSCALE: {
@@ -361,7 +366,7 @@ bool GctkLoadTextureStoreData(Texture* texture, const uint8_t* data, size_t data
 				} break;
 			}
 
-			uint8_t stride;
+			uint8_t stride = 0;
 			switch ((TextureFormat) (format & ~GCTK_WITH_RLE)) {
 				case GCTK_INDEXED_8:
 				case GCTK_GRAYSCALE: {
@@ -467,6 +472,189 @@ bool GctkLoadTextureFromFileStoreData(Texture* texture, const char* path, uint8_
 	return result;
 }
 
+size_t GctkWriteTexture(const char* path, const Texture* texture, const uint8_t* data, size_t data_size, uint8_t** data_out) {
+	Vector vec;
+	if (!GctkVectorAlloc(&vec, 0, sizeof(uint8_t), GctkGetDefaultAllocator())) {
+		return 0;
+	}
+
+	size_t written = 0;
+	BinaryWriter writer = GctkBinaryWriterNewFromVector(&vec, GCTK_LITTLE_ENDIAN);
+
+	if (GctkBinaryWriterAppend_u8(&writer, 'G') &&
+	GctkBinaryWriterAppend_u8(&writer, 'T') &&
+	GctkBinaryWriterAppend_u8(&writer, 'E') &&
+	GctkBinaryWriterAppend_u8(&writer, 'X')) {
+		written += 4;
+	} else {
+		goto ERRROR;
+	}
+
+	if (GctkBinaryWriterAppend_u8(&writer, 0)) {
+		written++;
+	} else {
+		goto ERRROR;
+	}
+
+	uint8_t flags = ((texture->target & 0b111) << 5) |
+					(texture->clamp_r ? 1 : 0) << 4 |
+					(texture->clamp_s ? 1 : 0) << 3 |
+					(texture->clamp_t ? 1 : 0) << 2 |
+					(texture->point_filter ? 1 : 0) << 1 |
+					texture->mipmaps;
+	if (GctkBinaryWriterAppend_u8(&writer, flags)) {
+		written++;
+	} else {
+		goto ERRROR;
+	}
+
+	if (GctkBinaryWriterAppend_u8(&writer, texture->format)) {
+		written++;
+	} else {
+		goto ERRROR;
+	}
+
+	if (GctkBinaryWriterAppend_u16(&writer, texture->width)) {
+		written += 2;
+	} else {
+		goto ERRROR;
+	}
+	if (texture->target != GCTK_TEXTURE_1D) {
+		if (GctkBinaryWriterAppend_u16(&writer, texture->height)) {
+			written += 2;
+		} else {
+			goto ERRROR;
+		}
+	}
+	if (texture->target == GCTK_TEXTURE_3D || texture->target >= GCTK_TEXTURE_2D_ARRAY) {
+		if (GctkBinaryWriterAppend_u16(&writer, texture->depth)) {
+			written += 2;
+		} else {
+			goto ERRROR;
+		}
+	}
+
+	if (texture->format >= GCTK_INDEXED_8 && texture->format <= GCTK_INDEXED_16_ALPHA) {
+		Vector palette;
+		GctkVectorAlloc(&palette, 0, 3, GctkGetDefaultAllocator());
+
+		size_t index_size = texture->format == GCTK_INDEXED_16 || texture->format == GCTK_INDEXED_16_ALPHA ? 2 : 1;
+		if (texture->format == GCTK_INDEXED_8_ALPHA || texture->format == GCTK_INDEXED_16_ALPHA) {
+			index_size++;
+		}
+
+		Vector indices;
+		GctkVectorAlloc(&indices, 0,
+			index_size,
+			GctkGetDefaultAllocator()
+		);
+
+		for (size_t i = 0; i < data_size; i += 3) {
+			uint8_t rgb[3] = { 0, 0, 0 };
+			rgb[0] = *data++;
+			rgb[1] = *data++;
+			rgb[2] = *data++;
+
+			ssize_t idx = GctkVectorSeek(&palette, rgb, 3);
+			if (idx < 0) {
+				GctkVectorAddItem(&palette, rgb, 3);
+				idx = palette.item_size - 1;
+			}
+
+			if (texture->format == GCTK_INDEXED_8 || texture->format == GCTK_INDEXED_8_ALPHA) {
+				idx &= 0xFF;
+			} else {
+				idx &= 0xFFFF;
+			}
+
+			if (texture->format == GCTK_INDEXED_8_ALPHA || texture->format == GCTK_INDEXED_16_ALPHA) {
+				idx <<= 8;
+				idx |= *data++;
+			}
+		}
+
+		if (texture->format == GCTK_INDEXED_8 || texture->format == GCTK_INDEXED_8_ALPHA) {
+			if (GctkBinaryWriterAppend_u8(&writer, palette.count)) {
+				written++;
+			} else {
+				goto ERRROR;
+			}
+		} else {
+			if (GctkBinaryWriterAppend_u16(&writer, palette.count)) {
+				written += 2;
+			} else {
+				goto ERRROR;
+			}
+		}
+
+		for (size_t i = 0; i < palette.count; i++) {
+			const uint8_t* c = GctkVectorGetConst(&palette, i);
+			if (GctkBinaryWriterAppend_u8(&writer, c[0]) && GctkBinaryWriterAppend_u8(&writer, c[1]) && GctkBinaryWriterAppend_u8(&writer, c[2])) {
+				written += 3;
+			} else {
+				goto ERRROR;
+			}
+		}
+
+		GctkVectorFree(&palette);
+
+		for (size_t i = 0; i < indices.count; i++) {
+			const uint32_t* idx = GctkVectorGetConst(&indices, i);
+			if (GctkBinaryWriterAppend_u8(&writer, *idx & 0xFF)) {
+				written++;
+			} else {
+				goto ERRROR;
+			}
+
+			if (texture->format == GCTK_INDEXED_16) {
+				if (GctkBinaryWriterAppend_u8(&writer, (*idx >> 8) & 0xFF)) {
+					written++;
+				} else {
+					goto ERRROR;
+				}
+			}
+			if (texture->format == GCTK_INDEXED_8_ALPHA || texture->format == GCTK_INDEXED_16_ALPHA) {
+				if (GctkBinaryWriterAppend_u8(&writer, (*idx >> 16) & 0xFF)) {
+					written++;
+				} else {
+					goto ERRROR;
+				}
+			}
+		}
+		GctkVectorFree(&indices);
+	} else {
+		if (GctkBinaryWriterAppendBytes(&writer, data, data_size)) {
+			written += data_size;
+		} else {
+			goto ERRROR;
+		}
+	}
+
+	data_out = writer.buffer->data;
+	return written;
+ERRROR:
+	GctkLogError(GCTK_ERROR_WRITE_BUFFER, "Error while writing texture data!");
+	GctkVectorFree(&vec);
+	return 0;
+}
+bool GctkWriteTextureToFile(const char* path, const Texture* texture, const uint8_t* data, size_t data_size) {
+	uint8_t* buffer;
+	size_t size = GctkWriteTexture(path, texture, data, data_size, &buffer);
+	if (size <= 0) {
+		return false;
+	}
+
+	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_WRITE, GCTK_FILE_BINARY | GCTK_FILE_CREATE_NEW);
+	if (f == NULL) {
+		GctkLogError(GCTK_ERROR_IO_FAILURE, "Failed to open file \"%s\"", path);
+		return false;
+	}
+	GctkFileWrite(f, buffer, size, sizeof(uint8_t));
+	GctkCloseFile(f);
+
+	return true;
+}
+
 static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* texture, bool rle) {
 	GctkBinaryWriterAppend_u8(writer, 'G');
 	GctkBinaryWriterAppend_u8(writer, 'T');
@@ -528,7 +716,7 @@ static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* te
 		uint8_t count = 0;
 		uint64_t data = UINT64_MAX;
 
-		size_t packet_size;
+		size_t packet_size = 0;
 		switch ((TextureFormat)(format & ~GCTK_WITH_RLE)) {
 			case GCTK_INDEXED_8:
 			case GCTK_GRAYSCALE: {
@@ -548,7 +736,7 @@ static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* te
 		}
 
 		Vector vec;
-		GctkVectorAlloc(&vec, 0, GctkGetDefaultAllocator());
+		GctkVectorAlloc(&vec, 0, 1, GctkGetDefaultAllocator());
 		for (GLsizei i = 0; i < pixel_count; i++) {
 			if (data > UINT32_MAX) {
 				data = 0;
@@ -577,30 +765,6 @@ static bool GctkWriteTextureBinaryWriter(BinaryWriter* writer, const Texture* te
 	} else {
 		result = GctkBinaryWriterAppendBytes(writer, image_data, pixel_count * pixel_size);
 	}
-	return result;
-}
-
-bool GctkWriteTexture(const Texture* texture, uint8_t* buffer, size_t buffer_max_size, bool rle) {
-	Vector vec;
-	BinaryWriter writer = GctkBinaryWriterNewFromVector(&vec, GCTK_LITTLE_ENDIAN);
-	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
-
-	if (result) {
-		memcpy(buffer, vec.data, GctkMax(vec.count, buffer_max_size));
-	}
-
-	GctkBinaryWriterClose(&writer);
-	return result;
-}
-bool GctkWriteTextureToFile(const Texture* texture, const char* path, bool rle) {
-	FILE* f = GctkOpenFile(path, GCTK_FILEMODE_WRITE, GCTK_FILE_OPEN_OR_CREATE | GCTK_FILE_BINARY);
-	if (f == NULL) {
-		GctkLogError(GCTK_ERROR_LOAD_TEXTURE_FAILURE, "Failed to open file \"%s\"", path);
-		return false;
-	}
-	BinaryWriter writer = GctkBinaryWriterNewFromFile(f, GCTK_LITTLE_ENDIAN);
-	bool result = GctkWriteTextureBinaryWriter(&writer, texture, rle);
-	GctkBinaryWriterClose(&writer);
 	return result;
 }
 

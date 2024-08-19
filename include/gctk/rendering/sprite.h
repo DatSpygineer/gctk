@@ -11,6 +11,7 @@ typedef struct Sprite {
 	Mesh mesh;
 } Sprite;
 
+GCTK_API bool GctkIsSpriteValid(const Sprite* sprite);
 GCTK_API bool GctkCreateSprite(Sprite* sprite, const Shader* shader, const Texture* texture);
 GCTK_API void GctkDeleteSprite(Sprite* sprite);
 GCTK_API bool GctkDrawSpriteGeneric(const Sprite* sprite, Color color, Mat4 transform, Mat4 view);

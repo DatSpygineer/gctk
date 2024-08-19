@@ -1,4 +1,5 @@
 #include <gctk/filesys.h>
+#include <gctk/math.h>
 
 #include "gctk/collections.h"
 #include "gctk/debug.h"
@@ -81,8 +82,7 @@ void GctkCountDealloc(void* ptr) {
 }
 #endif
 
-static Allocator GCTK_DEFAULT_ALLOCATOR = ALLOCATOR(sizeof(uint8_t), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
-static Allocator GCTK_HASHMAP_PAIR_ALLOCATOR = ALLOCATOR(sizeof(HashMapPair), &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
+static Allocator GCTK_DEFAULT_ALLOCATOR = ALLOCATOR(&GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
 
 void* GctkMallocImpl(size_t count, size_t item_size) {
 	void* ptr = calloc(count, item_size);
@@ -136,7 +136,7 @@ void GctkFreeImpl(void** ptr) {
 	}
 }
 
-void* GctkAlloc(const Allocator* allocator, size_t count) {
+void* GctkAlloc(const Allocator* allocator, size_t item_size, size_t count) {
 	if (allocator == NULL) {
 		GctkLogError(GCTK_ERROR_NULL_PTR, "Allocator is null!");
 		return NULL;
@@ -145,14 +145,14 @@ void* GctkAlloc(const Allocator* allocator, size_t count) {
 		GctkLogError(GCTK_ERROR_NULL_PTR, "Allocator function \"allocate\" is null!");
 		return NULL;
 	}
-	if (allocator->item_size == 0) {
+	if (item_size == 0) {
 		GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Allocator item_size must be more then 0!");
 		return NULL;
 	}
 
-	return allocator->allocate(count, allocator->item_size);
+	return allocator->allocate(count, item_size);
 }
-void* GctkRealloc(const Allocator* allocator, void** ptr, size_t original_count, size_t new_count) {
+void* GctkRealloc(const Allocator* allocator, void** ptr, size_t item_size, size_t original_count, size_t new_count) {
 	if (allocator == NULL) {
 		GctkLogError(GCTK_ERROR_NULL_PTR, "Allocator is null!");
 		return NULL;
@@ -161,12 +161,12 @@ void* GctkRealloc(const Allocator* allocator, void** ptr, size_t original_count,
 		GctkLogError(GCTK_ERROR_NULL_PTR, "Allocator function \"reallocate\" is null!");
 		return NULL;
 	}
-	if (allocator->item_size == 0) {
+	if (item_size == 0) {
 		GctkLogError(GCTK_ERROR_OUT_OF_RANGE, "Allocator item_size must be more then 0!");
 		return NULL;
 	}
 
-	return allocator->reallocate(ptr, original_count, new_count, allocator->item_size);
+	return allocator->reallocate(ptr, original_count, new_count, item_size);
 }
 void  GctkFree(const Allocator* allocator, void** ptr) {
 	if (allocator == NULL) {
@@ -184,17 +184,8 @@ void  GctkFree(const Allocator* allocator, void** ptr) {
 const Allocator* GctkGetDefaultAllocator() {
 	return &GCTK_DEFAULT_ALLOCATOR;
 }
-Allocator GctkCreateDefaultAllocator(size_t item_size) {
-	return ALLOCATOR(item_size, &GctkMallocImpl, &GctkReallocImpl, &GctkFreeImpl);
-}
-const Allocator* GctkSetupDefaultAllocator(Allocator* target, size_t item_size) {
-	if (target->allocate == NULL || target->free == NULL || target->reallocate == NULL || target->item_size == 0) {
-		*target = GctkCreateDefaultAllocator(item_size);
-	}
-	return target;
-}
 
-bool GctkVectorAlloc(Vector* vec, size_t capacity, const Allocator* allocator) {
+bool GctkVectorAlloc(Vector* vec, size_t capacity, size_t item_size, const Allocator* allocator) {
 	if (allocator == NULL) {
 		GctkLogError(GCTK_ERROR_NULL_PTR, "Allocator is null!");
 		return false;
@@ -204,11 +195,12 @@ bool GctkVectorAlloc(Vector* vec, size_t capacity, const Allocator* allocator) {
 		.data = NULL,
 		.capacity = capacity,
 		.count = 0,
-		.allocator = allocator
+		.allocator = allocator,
+		.item_size = item_size
 	};
 
 	if (capacity > 0) {
-		vec->data = GctkAlloc(allocator, capacity);
+		vec->data = GctkAlloc(allocator, item_size, capacity);
 		if (vec->data == NULL) {
 			return false;
 		}
@@ -231,7 +223,7 @@ bool GctkVectorAddItem(Vector* vec, const void* data, size_t count) {
 		GctkVectorReserve(vec, vec->count + count);
 	}
 
-	memcpy(((uint8_t*)vec->data) + (vec->count * vec->allocator->item_size), data, count * vec->allocator->item_size);
+	memcpy(((uint8_t*)vec->data) + (vec->count * vec->item_size), data, count * vec->item_size);
 	vec->count += count;
 	return true;
 }
@@ -243,9 +235,9 @@ bool GctkVectorInsertItem(Vector* vec, size_t idx, const void* data, size_t coun
 	if (vec->capacity <= vec->count + count) {
 		GctkVectorReserve(vec, vec->count + count);
 	}
-	uint8_t* src = ((uint8_t*)vec->data) + (idx * vec->allocator->item_size);
-	memmove(src + (count * vec->allocator->item_size), src, (vec->count - idx) * vec->allocator->item_size);
-	memcpy(src, data, count * vec->allocator->item_size);
+	uint8_t* src = ((uint8_t*)vec->data) + (idx * vec->item_size);
+	memmove(src + (count * vec->item_size), src, (vec->count - idx) * vec->item_size);
+	memcpy(src, data, count * vec->item_size);
 
 	return true;
 }
@@ -260,15 +252,15 @@ bool GctkVectorRemoveItem(Vector* vec, size_t idx) {
 		return GctkVectorPopBack(vec);
 	}
 
-	void* trg = vec->data + (idx * vec->allocator->item_size);
-	void* src = trg + vec->allocator->item_size;
+	void* trg = vec->data + (idx * vec->item_size);
+	void* src = trg + vec->item_size;
 
 	if (vec->item_remove_callback != NULL) {
-		vec->item_remove_callback(trg, vec->allocator->item_size);
+		vec->item_remove_callback(trg, vec->item_size);
 	}
-	memmove(trg, src, (vec->count - idx) * vec->allocator->item_size);
+	memmove(trg, src, (vec->count - idx) * vec->item_size);
 	vec->count--;
-	memset(vec->data + ((vec->count + 1) * vec->allocator->item_size), 0, vec->allocator->item_size);
+	memset(vec->data + ((vec->count + 1) * vec->item_size), 0, vec->item_size);
 
 	return true;
 }
@@ -278,9 +270,9 @@ bool GctkVectorPopBack(Vector* vec) {
 	}
 
 	if (vec->item_remove_callback != NULL) {
-		vec->item_remove_callback(vec->data + ((vec->count - 1) * vec->allocator->item_size), vec->allocator->item_size);
+		vec->item_remove_callback(vec->data + ((vec->count - 1) * vec->item_size), vec->item_size);
 	}
-	memset(((uint8_t*)vec->data) + ((vec->count - 1) * vec->allocator->item_size), 0, vec->allocator->item_size);
+	memset(((uint8_t*)vec->data) + ((vec->count - 1) * vec->item_size), 0, vec->item_size);
 	vec->count--;
 	return true;
 }
@@ -290,9 +282,9 @@ bool GctkVectorPopFront(Vector* vec) {
 	}
 
 	if (vec->item_remove_callback != NULL) {
-		vec->item_remove_callback(vec->data, vec->allocator->item_size);
+		vec->item_remove_callback(vec->data, vec->item_size);
 	}
-	memmove(vec->data, ((uint8_t*)vec->data) + (vec->count * vec->allocator->item_size), (vec->count - 2) * vec->allocator->item_size);
+	memmove(vec->data, ((uint8_t*)vec->data) + (vec->count * vec->item_size), (vec->count - 2) * vec->item_size);
 	return true;
 }
 bool GctkVectorReserve(Vector* vec, size_t new_capacity) {
@@ -301,14 +293,14 @@ bool GctkVectorReserve(Vector* vec, size_t new_capacity) {
 	}
 
 	if (vec->data == NULL) {
-		vec->data = GctkAlloc(vec->allocator, new_capacity);
+		vec->data = GctkAlloc(vec->allocator, vec->item_size, new_capacity);
 	} else {
 		if (new_capacity < vec->count) {
 			new_capacity = vec->count; // Limit to current count
 		}
 
 		if (new_capacity != vec->capacity) {
-			vec->data = GctkRealloc(vec->allocator, &vec->data, vec->capacity, new_capacity);
+			vec->data = GctkRealloc(vec->allocator, &vec->data, vec->item_size, vec->capacity, new_capacity);
 		}
 	}
 	vec->capacity = new_capacity;
@@ -321,10 +313,10 @@ bool GctkVectorClear(Vector* vec) {
 
 	if (vec->item_remove_callback != NULL) {
 		for (size_t i = 0; i < vec->count; i++) {
-			vec->item_remove_callback(vec->data + (i * vec->allocator->item_size), vec->allocator->item_size);
+			vec->item_remove_callback(vec->data + (i * vec->item_size), vec->item_size);
 		}
 	}
-	memset(vec->data, 0, vec->count * vec->allocator->item_size);
+	memset(vec->data, 0, vec->count * vec->item_size);
 	vec->count = 0;
 	return true;
 }
@@ -333,13 +325,13 @@ void* GctkVectorGet(Vector* vec, size_t idx) {
 	if (vec == NULL || idx >= vec->count) {
 		return NULL;
 	}
-	return vec->data + (idx * vec->allocator->item_size);
+	return vec->data + (idx * vec->item_size);
 }
 const void* GctkVectorGetConst(const Vector* vec, size_t idx) {
 	if (vec == NULL || idx >= vec->count) {
 		return NULL;
 	}
-	return vec->data + (idx * vec->allocator->item_size);
+	return vec->data + (idx * vec->item_size);
 }
 
 bool GctkVectorWrite_u8 (Vector* vec, uint8_t value) {
@@ -376,165 +368,19 @@ bool GctkVectorWrite_str(Vector* vec, const char* value) {
 	return GctkVectorAddItem(vec, &value, sizeof(value));
 }
 
-bool GctkHashMapAlloc(HashMap* map, size_t capacity, const Allocator* item_allocator) {
-	if (map == NULL) {
-		return false;
-	}
-
-	void* p = GctkAlloc(&GCTK_HASHMAP_PAIR_ALLOCATOR, capacity);
-	if (p == NULL) {
-		return false;
-	}
-
-	*map = (HashMap) {
-		.pairs = p,
-		.capacity = capacity,
-		.count = 0,
-		.item_allocator = item_allocator
-	};
-
-	return true;
-}
-bool GctkHashMapFree(HashMap* map) {
-	if (map == NULL) {
-		return false;
-	}
-
-	for (size_t i = 0; i < map->count; i++) {
-		GctkFree(map->item_allocator, &map->pairs[i].data);
-	}
-	GctkFree(&GCTK_HASHMAP_PAIR_ALLOCATOR, (void**)&map->pairs);
-	memset(map, 0, sizeof(HashMap));
-
-	return true;
-}
-
-ssize_t GctkHashMapFind(const HashMap* map, const char* key) {
-	return GctkHashMapFindByHash(map, GctkStrHash(key));
-}
-ssize_t GctkHashMapFindByHash(const HashMap* map, hash_t hash) {
-	if (map == NULL) {
+ssize_t GctkVectorSeek(const Vector* vec, const void* data, size_t size) {
+	if (vec == NULL || data == NULL) {
 		return -1;
 	}
 
-	for (ssize_t i = 0; i < map->count; i++) {
-		if (map->pairs[i].hash == hash) {
-			return i;
+	size = GctkMax(size, vec->item_size);
+
+	for (size_t i = 0; i < vec->count; i++) {
+		if (memcmp(vec->data + (i * vec->item_size), data, size) == 0) {
+			return (ssize_t)i;
 		}
 	}
 	return -1;
-}
-
-HashMapPair* GctkHashMapGet(HashMap* map, const char* key) {
-	return GctkHashMapGetByHash(map, GctkStrHash(key));
-}
-const HashMapPair* GctkHashMapGetConst(const HashMap* map, const char* key) {
-	return GctkHashMapGetByHashConst(map, GctkStrHash(key));
-}
-
-HashMapPair* GctkHashMapGetByHash(HashMap* map, hash_t hash) {
-	ssize_t i = GctkHashMapFindByHash(map, hash);
-	if (i < 0) {
-		return NULL;
-	}
-	return map->pairs + i;
-}
-const HashMapPair* GctkHashMapGetByHashConst(const HashMap* map, hash_t hash) {
-	ssize_t i = GctkHashMapFindByHash(map, hash);
-	if (i < 0) {
-		return NULL;
-	}
-	return map->pairs + i;
-}
-
-bool GctkHashMapAdd(HashMap* map, const char* key, const void* data) {
-	return GctkHashMapAddWithHash(map, GctkStrHash(key), data);
-}
-bool GctkHashMapAddWithHash(HashMap* map, hash_t hash, const void* data) {
-	if (map == NULL) {
-		return false;
-	}
-
-	void* pair_data = GctkAlloc(map->item_allocator, 1);
-	if (pair_data == NULL) {
-		return false;
-	}
-	memcpy(pair_data, data, map->item_allocator->item_size);
-
-	if (map->capacity <= map->count + 1) {
-		if (!GctkHashMapReserve(map, map->count + 1)) {
-			GctkFree(map->item_allocator, pair_data);
-			return false;
-		}
-	}
-
-	map->pairs[map->count++] = (HashMapPair){
-		.hash = hash,
-		.data = pair_data
-	};
-
-	return true;
-}
-bool GctkHashMapRemove(HashMap* map, const char* key) {
-	return GctkHashMapRemoveByHash(map, GctkStrHash(key));
-}
-bool GctkHashMapRemoveByHash(HashMap* map, hash_t hash) {
-	if (map == NULL) {
-		return false;
-	}
-	ssize_t idx;
-	if ((idx = GctkHashMapFindByHash(map, hash)) < 0) {
-		return false;
-	}
-
-	GctkFree(map->item_allocator, &map->pairs[idx].data);
-
-	for (size_t i = idx; i < map->count; i++) {
-		if (i + 1 < map->count) {
-			map->pairs[i] = map->pairs[i + 1];
-		} else {
-			memset(&map->pairs[i], 0, sizeof(HashMapPair));
-		}
-	}
-	map->count--;
-
-	return true;
-}
-bool GctkHashMapReserve(HashMap* map, size_t new_capacity) {
-	if (map == NULL) {
-		return false;
-	}
-
-	if (map->pairs == NULL) {
-		map->pairs = GctkAlloc(&GCTK_HASHMAP_PAIR_ALLOCATOR, new_capacity);
-		if (map->pairs == NULL) {
-			return false;
-		}
-	} else {
-		if (new_capacity < map->count) {
-			new_capacity = map->count;
-		}
-		if (map->capacity != new_capacity) {
-			map->pairs = GctkRealloc(&GCTK_HASHMAP_PAIR_ALLOCATOR, (void**)&map->pairs, map->capacity, new_capacity);
-			if (map->pairs == NULL) {
-				return false;
-			}
-		}
-	}
-	map->capacity = new_capacity;
-	return true;
-}
-bool GctkHashMapClear(HashMap* map) {
-	if (map == NULL) {
-		return false;
-	}
-
-	for (size_t i = 0; i < map->count; i++) {
-		GctkFree(map->item_allocator, &map->pairs[i].data);
-	}
-	memset(map->pairs, 0, sizeof(HashMapPair) * map->count);
-
-	return true;
 }
 
 BinaryWriter GctkBinaryWriterNewFromFile(FILE* f, Endianness endianness) {

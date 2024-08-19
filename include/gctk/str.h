@@ -7,10 +7,6 @@
 
 #define GCTK_NOT_FOUND -1
 
-#ifndef GCTK_STR_HASH_METHOD
-	#define GCTK_STR_HASH_METHOD GctkHashCRC32
-#endif
-
 #ifndef hash_t
 	#define hash_t uint32_t
 #endif
@@ -28,6 +24,8 @@
 #define GctkCharIsNumberOct(__c) ((__c) >= '0' && (__c) <= '7')
 #define GctkCharIsNumberBin(__c) ((__c) == '0' || (__c) == '1')
 #define GctkCharIsAlphaNumeric(__c) (GctkCharIsNumber(__c) || GctkCharIsLetter(__c))
+
+GCTK_API hash_t (*GctkStrHashFunction)(const char *str);
 
 GCTK_API char* GctkStrCpy(char* trg, const char* source, size_t max_size);
 GCTK_API char* GctkStrCpySlice(char* trg, const char* source, size_t max_size, size_t count);
@@ -68,7 +66,6 @@ GCTK_API ssize_t GctkStrFindAnyLast(const char* str, const char* chars);
 GCTK_API ssize_t GctkStrFindAnyNot(const char* str, const char* chars);
 GCTK_API ssize_t GctkStrFindAnyLastNot(const char* str, const char* chars);
 
-GCTK_API uint32_t GctkHashCRC32(const uint8_t* data, size_t data_size);
 GCTK_API hash_t GctkStrHash(const char* cstr);
 
 GCTK_API void* GctkMemDup(const void* original, size_t size, size_t count);
