@@ -254,7 +254,10 @@ bool GctkUpdate() {
 
 	if (glfwWindowShouldClose(GCTK_WINDOW)) {
 		if (GCTK_CLOSING_CALLBACK != NULL) {
-			return !GCTK_CLOSING_CALLBACK();
+			if (!GCTK_CLOSING_CALLBACK()) {
+				glfwSetWindowShouldClose(GCTK_WINDOW, GL_FALSE);
+				return true;
+			}
 		}
 		return false;
 	}
