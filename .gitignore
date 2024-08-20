@@ -6,3 +6,6 @@
 # Ignore build folders
 cmake-build-*
 build
+
+# Ignore wiki files
+docs/wiki
