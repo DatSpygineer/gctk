@@ -867,6 +867,7 @@ namespace gctk {
 
 			return color;
 		}
+#include "gctk_colors.hpp"
 	};
 
 	class Random {

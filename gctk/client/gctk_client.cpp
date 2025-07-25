@@ -187,6 +187,14 @@ namespace gctk {
 		return glfwGetWindowMonitor(m_pWindow);
 	}
 
+	void Client::set_background_color(const Color& color) {
+		m_cBackgroundColor = color;
+		glClearColor(m_cBackgroundColor.r, m_cBackgroundColor.g, m_cBackgroundColor.b, m_cBackgroundColor.a);
+	}
+	Color Client::get_background_color() const {
+		return m_cBackgroundColor;
+	}
+
 	static bool UpdateWindowSize(const CVar* self, const std::string& value) {
 		try {
 			const uint32_t size = std::stoul(value);

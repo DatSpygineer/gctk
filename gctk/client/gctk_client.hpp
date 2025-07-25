@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "gctk_math.hpp"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -11,6 +13,7 @@ namespace gctk {
 		bool m_bGlfwInitialized;
 		GLFWimage* m_pIconImage;
 		double m_dTimePrev;
+		Color m_cBackgroundColor;
 	public:
 		Client(int argc, char** argv, const std::string& name);
 		virtual ~Client();
@@ -38,5 +41,8 @@ namespace gctk {
 		void set_window_monitor(int idx) const;
 		void set_window_monitor(GLFWmonitor* monitor) const;
 		[[nodiscard]] GLFWmonitor* get_window_monitor() const;
+
+		void set_background_color(const Color& color);
+		[[nodiscard]] Color get_background_color() const;
 	};
 }
