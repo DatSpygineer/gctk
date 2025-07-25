@@ -1,0 +1,12 @@
+# Ignore IDE folders
+.vs
+.vscode
+.idea
+
+# Ignore build folders
+build
+cmake-build-debug
+cmake-build-release
+
+# Ignore example binaries
+example/game/bin
