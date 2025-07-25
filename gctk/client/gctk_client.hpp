@@ -1,12 +1,11 @@
 #pragma once
 
-#include "gctk_api.hpp"
-
-#include <GLFW/glfw3.h>
+#include <string>
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 namespace gctk {
-	class GCTK_CLIENT_API Client {
+	class Client {
 		GLFWwindow* m_pWindow;
 		bool m_bGlfwInitialized;
 		GLFWimage* m_pIconImage;

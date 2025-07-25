@@ -67,13 +67,13 @@ namespace gctk {
 	}
 
 	bool CVar::set_value(const Vector2& value) {
-		return set_value(std::format("{: }", value));
+		return set_value(std::format("{} {}", value.x, value.y));
 	}
 	bool CVar::set_value(const Vector3& value) {
-		return set_value(std::format("{: }", value));
+		return set_value(std::format("{} {} {}", value.x, value.y, value.z));
 	}
 	bool CVar::set_value(const Vector4& value) {
-		return set_value(std::format("{: }", value));
+		return set_value(std::format("{} {} {} {}", value.x, value.y, value.z, value.w));
 	}
 	bool CVar::set_value(const Color& value) {
 		auto [ r, g, b, a ] = value.to_bytes();
@@ -91,10 +91,10 @@ namespace gctk {
 		}
 #else
 		if (!(m_eFlags & CVAR_FLAG_SERVER_SIDE)) {
-			return;
+			return false;
 		}
 		if ((m_eFlags & CVAR_FLAG_IS_CHEAT) && !sv_cheats.get_boolean()) {
-			return;
+			return false;
 		}
 #endif
 		if (m_fnValidate != nullptr && !m_fnValidate(this, value)) {
@@ -166,10 +166,10 @@ namespace gctk {
 			}
 #else
 			if (!(m_eFlags & CVAR_FLAG_SERVER_SIDE)) {
-				return;
+				return false;
 			}
-			if ((m_eFlags & CVAR_FLAG_IS_CHEAT) && !s_console_cheats_allowed) {
-				return;
+			if ((m_eFlags & CVAR_FLAG_IS_CHEAT) && !sv_cheats.get_boolean()) {
+				return false;
 			}
 #endif
 			m_fnCallback(args);

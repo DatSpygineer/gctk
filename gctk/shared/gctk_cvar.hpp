@@ -22,7 +22,7 @@ namespace gctk {
 		#define CVAR_DEFAULT_FLAGS CVAR_FLAG_SERVER_SIDE
 	#endif
 
-	class GCTK_API CVar {
+	class CVar {
 	public:
 		using ValidateCallback = std::function<bool(const CVar*, const std::string&)>;
 		using Callable = std::function<void(const std::vector<std::string>&)>;
@@ -71,10 +71,10 @@ namespace gctk {
 	void _cmd##__name(const std::vector<std::string>& args)
 
 	namespace Console {
-		GCTK_API void LoadConfig(const std::string& filename);
-		GCTK_API bool ExecuteCommand(const std::string& command);
+		void LoadConfig(const std::string& filename);
+		bool ExecuteCommand(const std::string& command);
 #ifdef GCTK_CLIENT
-		GCTK_API bool StoreUserData();
+		bool StoreUserData();
 #endif
 	}
 }

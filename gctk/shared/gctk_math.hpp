@@ -1,11 +1,10 @@
 #pragma once
 
+#include <chrono>
 #include <format>
 #include <cmath>
 #include <random>
 #include <tuple>
-
-#include "gctk_api.hpp"
 
 namespace gctk {
 	template<typename T>
@@ -76,7 +75,7 @@ namespace gctk {
 		}
 	}
 
-	struct GCTK_API Vector2 {
+	struct Vector2 {
 		float x, y;
 
 		constexpr Vector2() : x(0.0f), y(0.0f) {}
@@ -171,7 +170,7 @@ namespace gctk {
 		}
 	};
 
-	struct GCTK_API Vector3 {
+	struct Vector3 {
 		float x, y, z;
 
 		constexpr Vector3() : x(0.0f), y(0.0f), z(0.0f) {}
@@ -282,7 +281,7 @@ namespace gctk {
 		}
 	};
 
-	struct GCTK_API Vector4 {
+	struct Vector4 {
 		float x, y, z, w;
 
 		constexpr Vector4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) { }
@@ -395,14 +394,14 @@ namespace gctk {
 		}
 	};
 
-	struct GCTK_API AxisAngle {
+	struct AxisAngle {
 		Vector3 axis;
 		float angle;
 
 		constexpr AxisAngle(const Vector3& axis, const float angle) : axis(axis), angle(angle) { }
 	};
 
-	struct GCTK_API EulerAngles {
+	struct EulerAngles {
 		float yaw, pitch, roll;
 
 		constexpr EulerAngles() : yaw(0.0f), pitch(0.0f), roll(0.0f) { }
@@ -410,7 +409,7 @@ namespace gctk {
 		[[nodiscard]] constexpr std::tuple<float, float, float> items() const { return std::make_tuple(yaw, pitch, roll); }
 	};
 
-	struct GCTK_API Quaternion {
+	struct Quaternion {
 		float x, y, z, w;
 
 		constexpr Quaternion() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) { }
@@ -556,7 +555,7 @@ namespace gctk {
 		operator Vector4() const { return Vector4 { x, y, z, w }; } // NOLINT: Implicit conversion intended
 	};
 
-	struct GCTK_API Matrix4 {
+	struct Matrix4 {
 		Vector4 column0, column1, column2, column3;
 
 		constexpr Matrix4(const Vector4& column0, const Vector4& column1, const Vector4& column2, const Vector4& column3) :
@@ -781,7 +780,7 @@ namespace gctk {
 		Vector
 	};
 
-	struct GCTK_API Color {
+	struct Color {
 		float r, g, b, a;
 
 		constexpr Color() : r(0), g(0), b(0), a(1) {}
@@ -870,68 +869,60 @@ namespace gctk {
 		}
 	};
 
-	class GCTK_API Random {
-		std::mt19937 m_generator;
+	class Random {
+		std::mt19937 m_engine;
 	public:
-		Random() : m_generator(std::random_device()()) { }
-		explicit Random(std::seed_seq seed) : m_generator(seed) { }
-
-		inline void seed(std::seed_seq seed) {
-			m_generator.seed(seed);
-		}
+		explicit Random(const size_t seed) : m_engine(seed) { }
+		Random() : Random(std::chrono::high_resolution_clock::now().time_since_epoch().count()) { }
 
 		template<IntegerType T>
-		[[nodiscard]] T next_int() const {
-			return std::uniform_int_distribution<T>()(m_generator);
-		}
-		template<IntegerType T>
-		[[nodiscard]] T next_int(const T min, const T max) const {
-			return std::uniform_int_distribution<T>(min, max)(m_generator);
+		[[nodiscard]] inline T next_int(const T min, const T max) {
+			std::uniform_int_distribution<T> dist(min, max);
+			return dist(m_engine);
 		}
 		template<FloatType T>
-		[[nodiscard]] T next_float() const {
-			return std::uniform_real_distribution<T>()(m_generator);
+		[[nodiscard]] inline T next_float(const T min, const T max) {
+			std::uniform_real_distribution<T> dist(min, max);
+			return dist(m_engine);
 		}
-		template<FloatType T>
-		[[nodiscard]] T next_float(const T min, const T max) const {
-			return std::uniform_real_distribution<T>(min, max)(m_generator);
+		[[nodiscard]] inline Vector2 next_vector2(const Vector2& min, const Vector2& max) {
+			return Vector2 {
+				next_float<float>(min.x, max.x),
+				next_float<float>(min.y, max.y)
+			};
 		}
-		[[nodiscard]] inline bool next_bool(const float chance_for_true = 0.5f) const {
-			return std::bernoulli_distribution(chance_for_true)(m_generator);
-		}
-		[[nodiscard]] inline Vector2 next_vector2(const Vector2& min, const Vector2& max) const {
-			return Vector2 { next_float(min.x, max.x), next_float(min.y, max.y) };
-		}
-		[[nodiscard]] inline Vector3 next_vector3(const Vector3& min, const Vector3& max) const {
+		[[nodiscard]] inline Vector3 next_vector3(const Vector3& min, const Vector3& max) {
 			return Vector3 {
-				next_float(min.x, max.x),
-				next_float(min.y, max.y),
-				next_float(min.z, max.z)
+				next_float<float>(min.x, max.x),
+				next_float<float>(min.y, max.y),
+				next_float<float>(min.z, max.z)
 			};
 		}
-		[[nodiscard]] inline Vector4 next_vector4(const Vector4& min, const Vector4& max) const {
+		[[nodiscard]] inline Vector4 next_vector4(const Vector4& min, const Vector4& max) {
 			return Vector4 {
-				next_float(min.x, max.x),
-				next_float(min.y, max.y),
-				next_float(min.z, max.z),
-				next_float(min.w, max.w)
+				next_float<float>(min.x, max.x),
+				next_float<float>(min.y, max.y),
+				next_float<float>(min.z, max.z),
+				next_float<float>(min.w, max.w)
 			};
 		}
-		[[nodiscard]] inline Vector2 next_in_circle(const float r_min, const float r_max) const {
+		[[nodiscard]] inline Vector2 next_in_circle(const float r_min, const float r_max) {
 			const auto r = next_float<float>(r_min, r_max);
-			const auto angle = next_float<float>(0.0f, Math::TwoPi);
+			const auto angle = next_float<float>(0.0f, Math::TwoPi<float>);
 			return Vector2 { r * Math::Cos(angle), r * Math::Sin(angle) };
 		}
-		[[nodiscard]] inline Vector3 next_in_sphere(const Vector2& r_min, const Vector2& r_max) const {
-			const auto r = next_vector2(r_min, r_max);
-			const auto a = next_float<float>(0.0f, Math::TwoPi);
-			const auto b = next_float<float>(0.0f, Math::TwoPi);
+		[[nodiscard]] inline Vector3 next_in_sphere(const float r_min, const float r_max) {
+			const auto r = next_float<float>(r_min, r_max);
+			const auto a = next_float<float>(0.0f, Math::TwoPi<float>);
+			const auto b = next_float<float>(0.0f, Math::TwoPi<float>);
 			return Vector3 {
 				r * Math::Sin(a) * Math::Cos(b),
 				r * Math::Sin(a) * Math::Sin(b),
 				r * Math::Cos(a)
 			};
 		}
+		inline void seed() { seed(std::chrono::high_resolution_clock::now().time_since_epoch().count()); }
+		inline void seed(const size_t seed) { m_engine.seed(seed); }
 	};
 }
 

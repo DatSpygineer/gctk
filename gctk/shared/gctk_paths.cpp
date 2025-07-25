@@ -30,7 +30,7 @@ namespace gctk::Paths {
 		return s_basepath;
 	}
 	std::filesystem::path bin_path() {
-		return s_basepath / "bin";
+		return s_basepath / "bin" / (GCTK_OS_NAME "_" GCTK_ARCH_NAME);
 	}
 	std::filesystem::path cfg_path() {
 		return s_basepath / "cfg";

@@ -73,7 +73,7 @@ namespace gctk {
 				m_pIconImage->pixels = icon_data;
 				glfwSetWindowIcon(m_pWindow, 1, m_pIconImage);
 			} else {
-				LogErr(std::format("Failed to load window icon \"{}\"", Paths::res_path() / "game.png"));
+				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::res_path() / "game.png").string()));
 			}
 		}
 

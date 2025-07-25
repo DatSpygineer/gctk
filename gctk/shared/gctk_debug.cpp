@@ -32,7 +32,7 @@ namespace gctk {
 			default: /* Nothing to do */ break;
 		}
 #endif
-		std::println(formatted_msg);
+		std::println("{}", formatted_msg);
 #ifdef _WIN32
 #else
 		if (level != MessageLevel::Info) {

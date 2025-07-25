@@ -1,6 +1,7 @@
 #pragma once
 
-#include "gctk_api.hpp"
+#include <string>
+#include <format>
 
 namespace gctk {
 	enum class MessageLevel {
@@ -9,9 +10,9 @@ namespace gctk {
 		Error
 	};
 
-	GCTK_API void Log(const std::string& message, MessageLevel level, const char* file, long line);
-	GCTK_API void AssertLog(const std::string& expression, const std::string& failure_message, const char* file, long line);
-	GCTK_API void DoCrash(const std::string& message);
+	void Log(const std::string& message, MessageLevel level, const char* file, long line);
+	void AssertLog(const std::string& expression, const std::string& failure_message, const char* file, long line);
+	void DoCrash(const std::string& message);
 }
 
 #define LogInfo(__message) gctk::Log(__message, gctk::MessageLevel::Info,    __FILE__, __LINE__)

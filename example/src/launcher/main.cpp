@@ -1,7 +1,12 @@
 #include "gctk_api.hpp"
+#include "gctk_debug.hpp"
 #include "gctk_str.hpp"
+#include "gctk_dll.hpp"
+#include "gctk_paths.hpp"
 
 #ifdef _WIN32
+#define CLIENT_DLL_NAME "game_client.dll"
+
 #include <windows.h>
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
@@ -19,6 +24,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine,
 	}
 	LocalFree(argvW);
 #else
+#define CLIENT_DLL_NAME "libgame_client.so"
+
 int main(const int argc, char** argv) {
 	std::vector<std::string> args;
 	args.reserve(argc);
@@ -26,7 +33,11 @@ int main(const int argc, char** argv) {
 		args.emplace_back(argv[i]);
 	}
 #endif
-
-
-	return 0;
+	gctk::DLL client_dll(gctk::Paths::bin_path() / CLIENT_DLL_NAME);
+	auto client_main = client_dll.get_symbol<int(*)(const std::vector<std::string>&)>("ClientMain");
+	if (client_main != nullptr) {
+		return client_main(args);
+	}
+	FatalError(std::format("Could not load symbol \"ClientMain\" from library \"{}\"", CLIENT_DLL_NAME));
+	return 1;
 }
