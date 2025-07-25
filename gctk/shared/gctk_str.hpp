@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "gctk_api.hpp"
-
 namespace gctk::StringUtil {
 	std::string ToLower(const std::string& str);
 	std::string ToUpper(const std::string& str);

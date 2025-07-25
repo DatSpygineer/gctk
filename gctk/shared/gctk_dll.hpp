@@ -2,7 +2,6 @@
 
 #include <filesystem>
 
-#include "gctk_api.hpp"
 #ifdef _WIN32
 	#include <windows.h>
 #else

@@ -1,4 +1,3 @@
-#include "gctk_api.hpp"
 #include "gctk_debug.hpp"
 #include "gctk_str.hpp"
 #include "gctk_dll.hpp"

@@ -3,7 +3,6 @@
 #include <functional>
 #include <vector>
 
-#include "gctk_api.hpp"
 #include "gctk_math.hpp"
 
 namespace gctk {
