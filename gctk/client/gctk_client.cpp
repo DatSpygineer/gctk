@@ -26,7 +26,7 @@ namespace gctk {
 			FatalError("Client already running!");
 		}
 
-		Paths::init(argc, argv);
+		Paths::init(argv[0], name);
 
 		if (glfwInit() == GLFW_FALSE) {
 			const char* errmsg;
@@ -80,6 +80,7 @@ namespace gctk {
 		m_dTimePrev = glfwGetTime();
 		s_client_instance = this;
 	}
+
 	Client::~Client() {
 		Console::StoreUserData();
 
@@ -111,6 +112,10 @@ namespace gctk {
 
 		on_post_update(m_dTimePrev - time);
 		glfwSwapBuffers(m_pWindow);
+	}
+
+	bool Client::should_exit() const {
+		return m_pWindow != nullptr && glfwWindowShouldClose(m_pWindow);
 	}
 
 	void Client::set_window_title(const std::string& title) const {

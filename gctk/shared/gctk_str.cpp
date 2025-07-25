@@ -5,15 +5,17 @@
 
 namespace gctk::StringUtil {
 	std::string ToLower(const std::string& str) {
-		std::string result;
-		result.reserve(str.size());
-		std::ranges::transform(str, result.begin(), [](auto c) { return std::tolower(c); });
+		std::string result = str;
+		for (auto& c : result) {
+			c = static_cast<char>(std::tolower(c));
+		}
 		return result;
 	}
 	std::string ToUpper(const std::string& str) {
-		std::string result;
-		result.reserve(str.size());
-		std::ranges::transform(str, result.begin(), [](auto c) { return std::toupper(c); });
+		std::string result = str;
+		for (auto& c : result) {
+			c = static_cast<char>(std::toupper(c));
+		}
 		return result;
 	}
 	std::string TrimBeg(const std::string& str, const std::string& chars) {

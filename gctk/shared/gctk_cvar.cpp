@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 namespace gctk {
-	static std::unordered_map<std::string, std::shared_ptr<CVar>> s_cvars = { };
 #ifdef GCTK_SERVER
 	CVar sv_cheats("sv_cheats", "false", CVAR_FLAG_REPLICATE);
 #endif
@@ -18,6 +17,32 @@ namespace gctk {
 		}
 	}
 
+	CVar* CVar::s_cvars = nullptr;
+
+	CVar* CVar::FindCVar(const std::string& name) {
+		CVar* current = s_cvars;
+		while (current != nullptr) {
+			if (current->name() == name) {
+				return current;
+			}
+			current = current->m_pNext;
+		}
+		return nullptr;
+	}
+	CVar* CVar::GetLastCvar() {
+		CVar* previous = s_cvars;
+		if (previous == nullptr) {
+			return nullptr;
+		}
+
+		CVar* current = previous->m_pNext;
+		while (current != nullptr) {
+			previous = current;
+			current = current->m_pNext;
+		}
+		return previous;
+	}
+
 	CVar::CVar(const std::string& name, const std::string& defaultValue, const int flags) :
 		CVar(name, defaultValue, flags, ValidateAlwaysTrue) { }
 
@@ -26,28 +51,45 @@ namespace gctk {
 
 	CVar::CVar(const std::string& name, const std::string& defaultValue, const int flags,
 	           const ValidateCallback& validate) :
-	m_sName(name), m_sValue(defaultValue), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr), m_fnValidate(validate) {
-		if (s_cvars.contains(name)) {
+	m_sName(name), m_sValue(defaultValue), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
+	m_fnValidate(validate), m_pNext(nullptr) {
+		if (FindCVar(m_sName) != nullptr) {
 			throw std::runtime_error("CVar \"" + name + "\" already exists");
 		}
-		s_cvars.emplace(name, std::make_shared<CVar>(*this));
+
+		if (CVar* last = GetLastCvar(); last == nullptr) {
+			s_cvars = this;
+		} else {
+			last->m_pNext = this;
+		}
 	}
 
 	CVar::CVar(const std::string& name, std::string&& defaultValue, const int flags,
 	           const ValidateCallback& validate) :
-	m_sName(name), m_sValue(std::move(defaultValue)), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr), m_fnValidate(validate) {
-		if (s_cvars.contains(name)) {
-			throw std::runtime_error("CVar \"" + name + "\" already exists");
+	m_sName(name), m_sValue(std::move(defaultValue)), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
+	m_fnValidate(validate), m_pNext(nullptr) {
+		if (FindCVar(m_sName) != nullptr) {
+			throw std::runtime_error("CVar \"" + m_sName + "\" already exists");
 		}
-		s_cvars.emplace(name, std::make_shared<CVar>(*this));
+
+		if (CVar* last = GetLastCvar(); last == nullptr) {
+			s_cvars = this;
+		} else {
+			last->m_pNext = this;
+		}
 	}
 
 	CVar::CVar(const std::string& name, const Callable& callable, const int flags) :
-		m_sName(name), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(callable) {
-		if (s_cvars.contains(name)) {
-			throw std::runtime_error("CVar \"" + name + "\" already exists");
+		m_sName(name), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(callable), m_pNext(nullptr) {
+		if (FindCVar(m_sName) != nullptr) {
+			throw std::runtime_error("CVar \"" + m_sName + "\" already exists");
 		}
-		s_cvars.emplace(name, std::make_shared<CVar>(*this));
+
+		if (CVar* last = GetLastCvar(); last == nullptr) {
+			s_cvars = this;
+		} else {
+			last->m_pNext = this;
+		}
 	}
 
 	const CVar::ValidateCallback CVar::ValidateAlwaysTrue = [](const CVar* self, const auto& value) -> bool {
@@ -246,11 +288,11 @@ namespace gctk {
 			}
 		}
 
-		if (!s_cvars.contains(name)) {
+		if (CVar::FindCVar(name) == nullptr) {
 			return false;
 		}
 
-		const auto& cvar = s_cvars.at(name);
+		const auto& cvar = CVar::FindCVar(name);
 		if (cvar->is_callable()) {
 			return cvar->call(args);
 		}
@@ -264,13 +306,14 @@ namespace gctk {
 			return false;
 		}
 
-		for (const auto& cvar : s_cvars) {
-			if (cvar.second->flags() & (CVAR_FLAG_CLIENT_SIDE | CVAR_FLAG_USER_DATA) && !cvar.second->is_callable()) {
-				f << cvar.first << " " << cvar.second->get_string() << std::endl;
+		const CVar* cvar = CVar::s_cvars;
+		while (cvar != nullptr) {
+			if (cvar->flags() & (CVAR_FLAG_CLIENT_SIDE | CVAR_FLAG_USER_DATA) && !cvar->is_callable()) {
+				f << cvar->name() << " " << cvar->get_string() << std::endl;
 			}
+			cvar = cvar->m_pNext;
 		}
 		return true;
 	}
-
 #endif
 }

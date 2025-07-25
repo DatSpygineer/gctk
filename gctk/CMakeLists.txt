@@ -31,6 +31,7 @@ add_library(gctk::server ALIAS gctk_server)
 function(add_gctk_client TARGET GAME_OUTPUT_DIRECTORY)
     add_gctk_library(${TARGET}_client ${ARGN})
     target_link_libraries(${TARGET}_client PRIVATE gctk::client)
+    target_compile_definitions(${TARGET}_client PRIVATE -DGCTK_GAME_NAME="${TARGET}")
     set_target_properties(${TARGET}_client PROPERTIES
         OUTPUT_NAME game_client
         LIBRARY_OUTPUT_DIRECTORY ${GAME_OUTPUT_DIRECTORY}/bin/${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}
@@ -39,6 +40,7 @@ endfunction()
 function(add_gctk_server TARGET GAME_OUTPUT_DIRECTORY)
     add_gctk_library(${TARGET}_server ${ARGN})
     target_link_libraries(${TARGET}_server PRIVATE gctk::server)
+    target_compile_definitions(${TARGET}_server PRIVATE -DGCTK_GAME_NAME="${TARGET}")
     set_target_properties(${TARGET}_server PROPERTIES
         OUTPUT_NAME game_server
         LIBRARY_OUTPUT_DIRECTORY ${GAME_OUTPUT_DIRECTORY}/bin/${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}

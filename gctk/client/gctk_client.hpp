@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -22,6 +23,7 @@ namespace gctk {
 		virtual void on_exit() { }
 
 		void update();
+		[[nodiscard]] bool should_exit() const;
 
 		void set_window_title(const std::string& title) const;
 		[[nodiscard]] std::string get_window_title() const;

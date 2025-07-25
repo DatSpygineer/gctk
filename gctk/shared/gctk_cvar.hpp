@@ -32,7 +32,11 @@ namespace gctk {
 		Callable m_fnCallback;
 		ValidateCallback m_fnValidate;
 
-		static const ValidateCallback ValidateAlwaysTrue;
+		CVar* m_pNext;
+		static CVar* s_cvars;
+
+		static CVar* FindCVar(const std::string& name);
+		static CVar* GetLastCvar();
 	public:
 		CVar(const std::string& name, const std::string& defaultValue, int flags);
 		CVar(const std::string& name, std::string&& defaultValue, int flags);
@@ -63,6 +67,10 @@ namespace gctk {
 		[[nodiscard]] constexpr const std::string& name() const { return m_sName; }
 		[[nodiscard]] constexpr int flags() const { return m_eFlags; }
 		[[nodiscard]] constexpr bool is_callable() const { return m_fnCallback != nullptr; }
+
+		static const ValidateCallback ValidateAlwaysTrue;
+
+		friend class Console;
 	};
 
 #define CONCOMMAND(__name, __flags) \
@@ -70,11 +78,12 @@ namespace gctk {
 	CVar __name(#__name, _cmd##__name, __flags);\
 	void _cmd##__name(const std::vector<std::string>& args)
 
-	namespace Console {
-		void LoadConfig(const std::string& filename);
-		bool ExecuteCommand(const std::string& command);
+	class Console {
+	public:
+		static void LoadConfig(const std::string& filename);
+		static bool ExecuteCommand(const std::string& command);
 #ifdef GCTK_CLIENT
-		bool StoreUserData();
+		static bool StoreUserData();
 #endif
-	}
+	};
 }

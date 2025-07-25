@@ -4,7 +4,11 @@
 #include <vector>
 #include <print>
 
-GCTK_GAME_API int ClientMain(const std::vector<std::string>& args) {
-	std::println("Hello world!");
+GCTK_GAME_API int ClientMain(int argc, char** argv) {
+	gctk::Client client(argc, argv, GCTK_GAME_NAME);
+	while (!client.should_exit()) {
+		client.update();
+	}
+
 	return 0;
 }
