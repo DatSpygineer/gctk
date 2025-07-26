@@ -264,10 +264,18 @@ namespace gctk {
 				glTexImage3D(m_uTarget, 0, gl_internal_format, width, height, depth, 0, gl_format, GL_UNSIGNED_BYTE, data);
 			} break;
 			case GL_TEXTURE_CUBE_MAP: {
-
+				glTexStorage2D(m_uTarget, 0, gl_internal_format, width, height);
+				for (int i = 0; i < 6; i++) {
+					glTexSubImage2D(m_uTarget, 0, height * i, 0, width, height, gl_format, GL_UNSIGNED_BYTE, data);
+				}
 			} break;
 			case GL_TEXTURE_CUBE_MAP_ARRAY: {
-
+				glTexStorage3D(m_uTarget, 0, gl_internal_format, width, height, depth);
+				for (int j = 0; j < depth; j++) {
+					for (int i = 0; i < 6; i++) {
+						glTexSubImage3D(m_uTarget, 0, height * i, 0, j * 6, width, height, 1, gl_format, GL_UNSIGNED_BYTE, data);
+					}
+				}
 			} break;
 			default: /* Should never reach this case */ break;
 		}
