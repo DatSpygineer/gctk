@@ -8,5 +8,7 @@ build
 cmake-build-debug
 cmake-build-release
 
-# Ignore example binaries
+# Ignore example binaries, logs and user config
 example/game/bin
+example/game/logs
+example/game/cfg/userdata.cfg

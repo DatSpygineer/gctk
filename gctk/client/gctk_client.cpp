@@ -13,8 +13,8 @@ namespace gctk {
 	static bool UpdateSwapInterval(const CVar* self, const std::string& value);
 	static GLFWmonitor* GetMonitorFromIndex(int idx);
 
-	CVar vid_window_x("vid_window_x", "1024", CVAR_FLAG_USER_DATA, &UpdateWindowSize);
-	CVar vid_window_y("vid_window_y", "768", CVAR_FLAG_USER_DATA, &UpdateWindowSize);
+	CVar vid_window_width("vid_window_width", "1024", CVAR_FLAG_USER_DATA, &UpdateWindowSize);
+	CVar vid_window_height("vid_window_height", "768", CVAR_FLAG_USER_DATA, &UpdateWindowSize);
 	CVar vid_fullscreen("vid_fullscreen", "false", CVAR_FLAG_USER_DATA, &UpdateWindowState);
 	CVar vid_monitor("vid_monitor", "-1", CVAR_FLAG_USER_DATA, &UpdateWindowState);
 	CVar vid_vsync("vid_vsync", "false", CVAR_FLAG_USER_DATA, &UpdateSwapInterval);
@@ -27,6 +27,7 @@ namespace gctk {
 		}
 
 		Paths::init(argv[0], name);
+		LogInfo("Initializing client...");
 
 		if (glfwInit() == GLFW_FALSE) {
 			const char* errmsg;
@@ -54,7 +55,13 @@ namespace gctk {
 			}
 		}
 
-		m_pWindow = glfwCreateWindow(vid_window_x.get_integer(), vid_window_y.get_integer(), name.c_str(), monitor, nullptr);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		m_pWindow = glfwCreateWindow(
+			vid_window_width.get_integer(), vid_window_height.get_integer(),
+			name.c_str(), monitor, nullptr
+		);
 		if (m_pWindow == nullptr) {
 			const char* errmsg;
 			const int errcode = glfwGetError(&errmsg);
@@ -62,9 +69,20 @@ namespace gctk {
 		}
 		glfwMakeContextCurrent(m_pWindow);
 
-		if (std::filesystem::exists(Paths::res_path() / "game.png")) {
+		if (auto glew_error = glewInit(); glew_error != GLEW_OK) {
+			FatalError(std::format("Failed to initialize OpenGL: {} (error code {})",
+				reinterpret_cast<const char*>(glewGetErrorString(glew_error)),
+				glew_error
+			));
+		}
+
+#ifndef NDEBUG
+		set_window_title(name);
+#endif
+
+		if (std::filesystem::exists(Paths::res_path() / "game_icon.png")) {
 			int icon_x, icon_y;
-			const auto icon_data = stbi_load((Paths::res_path() / "game.png").string().c_str(), &icon_x, &icon_y, nullptr, 4);
+			const auto icon_data = stbi_load((Paths::res_path() / "game_icon.png").string().c_str(), &icon_x, &icon_y, nullptr, 4);
 
 			if (icon_data != nullptr) {
 				m_pIconImage = new GLFWimage;
@@ -72,12 +90,16 @@ namespace gctk {
 				m_pIconImage->height = icon_y;
 				m_pIconImage->pixels = icon_data;
 				glfwSetWindowIcon(m_pWindow, 1, m_pIconImage);
+				LogInfo(std::format("Loaded icon \"{}\"", (Paths::res_path() / "game_icon.png").string()));
 			} else {
-				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::res_path() / "game.png").string()));
+				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::res_path() / "game_icon.png").string()));
 			}
+		} else {
+			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::res_path() / "game_icon.png").string()));
 		}
 
 		m_dTimePrev = glfwGetTime();
+		LogInfo("Client initialized successfully");
 		s_client_instance = this;
 	}
 
@@ -99,6 +121,8 @@ namespace gctk {
 		if (s_client_instance == this) {
 			s_client_instance = nullptr;
 		}
+		LogInfo("Client closed");
+		CloseDebugLog();
 	}
 
 	void Client::update() {
@@ -119,10 +143,26 @@ namespace gctk {
 	}
 
 	void Client::set_window_title(const std::string& title) const {
+#ifndef NDEBUG
+		glfwSetWindowTitle(m_pWindow, std::format("{} | DEBUG | GCTk v{} | OpenGL v{}",
+			title,
+			GCTK_VERSION_STRING,
+			reinterpret_cast<const char*>(glGetString(GL_VERSION))
+		).c_str());
+#else
 		glfwSetWindowTitle(m_pWindow, title.c_str());
+#endif
 	}
 	std::string Client::get_window_title() const {
+#ifndef NDEBUG
+		std::string title = glfwGetWindowTitle(m_pWindow);
+		if (const auto idx = title.find('|'); idx != std::string::npos) {
+			return StringUtil::Trim(title.substr(0, idx));
+		}
+		return title;
+#else
 		return glfwGetWindowTitle(m_pWindow);
+#endif
 	}
 	void Client::set_window_location(const int x, const int y) const {
 		glfwSetWindowPos(m_pWindow, x, y);

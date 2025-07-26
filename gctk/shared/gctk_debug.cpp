@@ -1,7 +1,10 @@
 #include "gctk_debug.hpp"
 
+#include <fstream>
 #include <chrono>
 #include <print>
+
+#include "gctk_paths.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -9,21 +12,30 @@
 
 static constexpr std::string_view s_loglevel_names[] = {
 	"INFO",
-	"WARN"
+	"WARN",
 	"ERROR"
 };
 
 namespace gctk {
+	static std::ofstream s_logfile;
+	static bool s_no_filelog = false;
+
+	static std::ofstream& GetLogFile();
+
 	void Log(const std::string& message, MessageLevel level, const char* file, long line) {
-		auto now = std::chrono::system_clock::now();
 		const auto formatted_msg = std::format(
-			"{} [{}] \"{}\":{} {}",
-			now,
+			"{:%Y.%m.%d %H:%M:%S} [{}] \"{}\":{} {}",
+			std::chrono::system_clock::now(),
 			s_loglevel_names[static_cast<int>(level)],
 			file, line,
 			message
 		);
 
+		if (!s_no_filelog) {
+			if (auto& log_file = GetLogFile(); log_file.is_open()) {
+				log_file << formatted_msg << std::endl;
+			}
+		}
 #ifdef _WIN32
 #else
 		switch (level) {
@@ -55,6 +67,44 @@ namespace gctk {
 			message
 		).c_str());
 #endif
+		std::println("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message);
+		if (s_logfile.is_open()) {
+			s_logfile << std::format("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message) << std::endl;
+			s_logfile.flush();
+			s_logfile.close();
+		}
 		exit(1);
+	}
+
+	void CloseDebugLog() {
+		if (s_logfile.is_open()) {
+			s_logfile.flush();
+			s_logfile.close();
+		}
+	}
+
+	static std::ofstream& GetLogFile() {
+		if (!s_logfile.is_open()) {
+			auto path = Paths::base_path() / "logs";
+			if (!std::filesystem::exists(path)) {
+				std::filesystem::create_directories(path);
+			}
+			path /= std::format("log_{:%Y_%m_%d}.txt", std::chrono::system_clock::now());
+			if (std::filesystem::exists(path)) {
+				s_logfile = std::ofstream(path, std::ios::out | std::ios::app);
+			} else {
+				s_logfile = std::ofstream(path);
+			}
+
+			s_no_filelog = true;
+			if (!s_logfile.is_open()) {
+				LogWarn(std::format("Failed to open log file \"{}\"", path.string()));
+			} else {
+				LogInfo(std::format("Opened log file \"{}\"", path.string()));
+				s_logfile << "================ GCTk v" << GCTK_VERSION_STRING << " ================" << std::endl;
+			}
+			s_no_filelog = false;
+		}
+		return s_logfile;
 	}
 }

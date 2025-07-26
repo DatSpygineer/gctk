@@ -4,6 +4,10 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(GLEW REQUIRED)
 
+set(GCTK_VERSION_MAJOR 1)
+set(GCTK_VERSION_MINOR 0)
+set(GCTK_VERSION_RELEASE Alpha)
+
 function(add_gctk_library TARGET)
     add_library(${TARGET} SHARED ${ARGN})
     string(TOUPPER ${TARGET} TARGET_UPPER)
@@ -23,7 +27,14 @@ add_library(gctk_server STATIC ${GCTK_SERVER_SOURCES} ${GCTK_SHARED_SOURCES})
 target_include_directories(gctk_server PUBLIC ${CMAKE_CURRENT_LIST_DIR}/server ${CMAKE_CURRENT_LIST_DIR}/shared ${CMAKE_CURRENT_LIST_DIR}/thirdparty)
 target_compile_definitions(gctk_server PUBLIC GCTK_SERVER)
 
-add_compile_definitions(-DGCTK_OS_NAME="${CMAKE_SYSTEM_NAME}" -DGCTK_ARCH_NAME="${CMAKE_SYSTEM_PROCESSOR}")
+add_compile_definitions(
+        -DGCTK_OS_NAME="${CMAKE_SYSTEM_NAME}"
+        -DGCTK_ARCH_NAME="${CMAKE_SYSTEM_PROCESSOR}"
+        -DGCTK_VERSION_MAJOR=${GCTK_VERSION_MAJOR}
+        -DGCTK_VERSION_MINOR=${GCTK_VERSION_MINOR}
+        -DGCTK_VERSION_RELEASE="${GCTK_VERSION_RELEASE}"
+        -DGCTK_VERSION_STRING="${GCTK_VERSION_MAJOR}.${GCTK_VERSION_MINOR}${GCTK_VERSION_RELEASE}"
+)
 
 add_library(gctk::client ALIAS gctk_client)
 add_library(gctk::server ALIAS gctk_server)

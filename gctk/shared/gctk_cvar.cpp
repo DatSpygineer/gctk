@@ -313,6 +313,9 @@ namespace gctk {
 			}
 			cvar = cvar->m_pNext;
 		}
+
+		f.flush();
+		f.close();
 		return true;
 	}
 #endif

@@ -9,11 +9,11 @@
 #endif
 
 namespace gctk::Paths {
-	static std::filesystem::path s_basepath = std::filesystem::current_path();
+	static std::filesystem::path s_basepath = std::filesystem::current_path().parent_path().parent_path().parent_path();
 	static std::filesystem::path s_userpath;
 
 	void init(const std::string& argv0, const std::string& name) {
-		s_basepath = std::filesystem::path(argv0).parent_path();
+		s_basepath = std::filesystem::path(argv0).parent_path().parent_path().parent_path();
 #ifdef _WIN32
 		std::string userpath_base;
 		userpath_base.reserve(MAX_PATH);
