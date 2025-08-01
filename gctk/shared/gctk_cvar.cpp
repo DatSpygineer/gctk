@@ -1,10 +1,12 @@
 #include "gctk_cvar.hpp"
 #include "gctk_str.hpp"
-#include "gctk_paths.hpp"
+#include "gctk_filesys.hpp"
 
 #include <memory>
 #include <fstream>
 #include <unordered_map>
+
+#include "gctk_debug.hpp"
 
 namespace gctk {
 #ifdef GCTK_SERVER
@@ -220,17 +222,30 @@ namespace gctk {
 		return false;
 	}
 
-	void Console::LoadConfig(const std::string& filename) {
+	bool Console::ConfigExists(const std::string& filename) {
+		auto path = Paths::cfg_path() / filename;
+		if (!path.has_extension()) {
+			path += ".cfg";
+		}
+		return Paths::exists(path);
+	}
+
+	bool Console::LoadConfig(const std::string& filename) {
 		auto path = Paths::cfg_path() / filename;
 		if (!path.has_extension()) {
 			path += ".cfg";
 		}
 
+		if (!Paths::exists(path)) {
+			return false;
+		}
+
 		std::ifstream file(path);
 		std::string line;
 		while (std::getline(file, line)) {
-			ExecuteCommand(line);
+			if (!ExecuteCommand(line)) return false;
 		}
+		return true;
 	}
 	bool Console::ExecuteCommand(const std::string& command) {
 		std::string name, temp;
@@ -294,7 +309,12 @@ namespace gctk {
 
 		const auto& cvar = CVar::FindCVar(name);
 		if (cvar->is_callable()) {
-			return cvar->call(args);
+			try {
+				return cvar->call(args);
+			} catch (const EngineErrorException& error) {
+				Log(error.message(), MessageLevel::Error, error.caller_filename(), error.caller_line());
+				return false;
+			}
 		}
 		return cvar->set_value(StringUtil::Join(args, ' '));
 	}

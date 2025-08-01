@@ -9,6 +9,8 @@
 	#include <dlfcn.h>
 #endif
 
+#include "gctk_filesys.hpp"
+
 namespace gctk {
 	template<typename T>
 	concept PointerType = std::is_pointer_v<T>;
@@ -17,7 +19,7 @@ namespace gctk {
 		void* m_pModule;
 		bool m_bIsCopy;
 	public:
-		explicit DLL(const std::filesystem::path& path) : m_bIsCopy(false) {
+		explicit DLL(const Path& path) : m_bIsCopy(false) {
 #ifdef _WIN32
 			m_pModule = (void*)(LoadLibraryW(path.c_str()));
 #else

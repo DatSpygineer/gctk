@@ -79,7 +79,8 @@ namespace gctk {
 
 	class Console {
 	public:
-		static void LoadConfig(const std::string& filename);
+		static bool ConfigExists(const std::string& filename);
+		static bool LoadConfig(const std::string& filename);
 		static bool ExecuteCommand(const std::string& command);
 #ifdef GCTK_CLIENT
 		static bool StoreUserData();

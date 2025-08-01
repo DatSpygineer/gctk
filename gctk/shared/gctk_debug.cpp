@@ -4,7 +4,7 @@
 #include <chrono>
 #include <print>
 
-#include "gctk_paths.hpp"
+#include "gctk_filesys.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -24,7 +24,12 @@ namespace gctk {
 
 	void Log(const std::string& message, MessageLevel level, const char* file, long line) {
 		const auto formatted_msg = std::format(
-			"{:%Y.%m.%d %H:%M:%S} [{}] \"{}\":{} {}",
+			"{} - {:%Y.%m.%d %H:%M:%S} [{}] \"{}\":{} {}",
+#ifdef GCTK_CLIENT
+			"CLIENT",
+#else
+			"SERVER",
+#endif
 			std::chrono::system_clock::now(),
 			s_loglevel_names[static_cast<int>(level)],
 			file, line,
@@ -53,8 +58,14 @@ namespace gctk {
 #endif
 	}
 
-	void AssertLog(const std::string& expression, const std::string& failure_message, const char* file, long line) {
-		Log(std::format(R"(Assertion of expression "{}" failed: "{}")", expression, failure_message), MessageLevel::Error, file, line);
+	void AssertLog(const std::string& expression, const std::string& failure_message, bool fatal, const char* file, long line) {
+		Log(std::format(R"(Assertion of expression "{}" failed: "{}")", expression, failure_message),
+			MessageLevel::Error,
+			file, line
+		);
+		if (fatal) {
+			DoCrash(failure_message);
+		}
 	}
 
 	void DoCrash(const std::string& message) {
@@ -86,17 +97,17 @@ namespace gctk {
 	static std::ofstream& GetLogFile() {
 		if (!s_logfile.is_open()) {
 			auto path = Paths::base_path() / "logs";
-			if (!std::filesystem::exists(path)) {
-				std::filesystem::create_directories(path);
+			if (!Paths::exists(path)) {
+				Paths::create_directories(path);
 			}
 			path /= std::format("log_{:%Y_%m_%d}.txt", std::chrono::system_clock::now());
-			if (std::filesystem::exists(path)) {
+			if (Paths::exists(path)) {
 				s_logfile = std::ofstream(path, std::ios::out | std::ios::app);
 			} else {
 				s_logfile = std::ofstream(path);
 			}
 
-			s_no_filelog = true;
+			s_no_filelog = true; // Set to avoid infinite recursive calls
 			if (!s_logfile.is_open()) {
 				LogWarn(std::format("Failed to open log file \"{}\"", path.string()));
 			} else {

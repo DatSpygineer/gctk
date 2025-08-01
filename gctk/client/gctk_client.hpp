@@ -1,10 +1,10 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include "gctk_math.hpp"
 
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 namespace gctk {
@@ -12,20 +12,15 @@ namespace gctk {
 		GLFWwindow* m_pWindow;
 		bool m_bGlfwInitialized;
 		GLFWimage* m_pIconImage;
-		double m_dTimePrev;
 		Color m_cBackgroundColor;
+		std::string m_sName;
 	public:
 		Client(int argc, char** argv, const std::string& name);
 		virtual ~Client();
 
-		virtual void on_init() { }
-		virtual void on_pre_update(double dt) { }
-		virtual void on_update(double dt) { }
-		virtual void on_post_update(double dt) { }
-		virtual void on_render(double dt) { }
-		virtual void on_exit() { }
-
+		void init();
 		void update();
+		void render();
 		[[nodiscard]] bool should_exit() const;
 
 		void set_window_title(const std::string& title) const;
@@ -42,7 +37,11 @@ namespace gctk {
 		void set_window_monitor(GLFWmonitor* monitor) const;
 		[[nodiscard]] GLFWmonitor* get_window_monitor() const;
 
+		[[nodiscard]] constexpr GLFWwindow* get_window() const { return m_pWindow; }
+
 		void set_background_color(const Color& color);
 		[[nodiscard]] Color get_background_color() const;
+
+		static Client* Instance();
 	};
 }

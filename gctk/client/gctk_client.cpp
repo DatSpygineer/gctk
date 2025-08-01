@@ -1,8 +1,6 @@
-#include "gctk_client.hpp"
-#include "gctk_cvar.hpp"
-#include "gctk_debug.hpp"
-#include "gctk_paths.hpp"
-#include "gctk_str.hpp"
+#include <GL/glew.h>
+
+#include "gctk.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -21,23 +19,52 @@ namespace gctk {
 
 	static Client* s_client_instance = nullptr;
 
-	Client::Client(const int argc, char** argv, const std::string& name) : m_bGlfwInitialized(false), m_pIconImage(nullptr) {
+	Client::Client(const int argc, char** argv, const std::string& name) :
+		m_bGlfwInitialized(false), m_pIconImage(nullptr), m_sName(name) {
 		if (s_client_instance != nullptr) {
 			FatalError("Client already running!");
 		}
 
-		Paths::init(argv[0], name);
+		Console::LoadConfig("userdata.cfg");
+
+		s_client_instance = this;
+	}
+
+	Client::~Client() {
+		Console::StoreUserData();
+		Input::SaveInputs();
+
+		if (m_pIconImage != nullptr && m_pIconImage->pixels != nullptr) {
+			stbi_image_free(m_pIconImage->pixels);
+			delete m_pIconImage;
+		}
+
+		if (m_pWindow != nullptr) {
+			glfwDestroyWindow(m_pWindow);
+		}
+		if (m_bGlfwInitialized) {
+			glfwTerminate();
+		}
+
+		if (s_client_instance == this) {
+			s_client_instance = nullptr;
+		}
+		LogInfo("Client closed");
+		CloseDebugLog();
+	}
+
+	void Client::init() {
 		LogInfo("Initializing client...");
+
+		Console::LoadConfig("keybinds.cfg");
 
 		if (glfwInit() == GLFW_FALSE) {
 			const char* errmsg;
 			const int errcode = glfwGetError(&errmsg);
 			FatalError(std::format("Failed to initialize GLFW:\n{} (error code {})", errmsg, errcode));
 		}
-
 		m_bGlfwInitialized = true;
 
-		Console::LoadConfig("userdata.cfg");
 		GLFWmonitor* monitor = nullptr;
 		if (vid_fullscreen.get_boolean()) {
 			const int idx = vid_monitor.get_integer();
@@ -60,7 +87,7 @@ namespace gctk {
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		m_pWindow = glfwCreateWindow(
 			vid_window_width.get_integer(), vid_window_height.get_integer(),
-			name.c_str(), monitor, nullptr
+			m_sName.c_str(), monitor, nullptr
 		);
 		if (m_pWindow == nullptr) {
 			const char* errmsg;
@@ -77,10 +104,10 @@ namespace gctk {
 		}
 
 #ifndef NDEBUG
-		set_window_title(name);
+		set_window_title(m_sName);
 #endif
 
-		if (std::filesystem::exists(Paths::res_path() / "game_icon.png")) {
+		if (Paths::exists(Paths::res_path() / "game_icon.png")) {
 			int icon_x, icon_y;
 			const auto icon_data = stbi_load((Paths::res_path() / "game_icon.png").string().c_str(), &icon_x, &icon_y, nullptr, 4);
 
@@ -98,43 +125,21 @@ namespace gctk {
 			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::res_path() / "game_icon.png").string()));
 		}
 
-		m_dTimePrev = glfwGetTime();
+		Input::Initialize(*this);
+		Time::Initialize();
 		LogInfo("Client initialized successfully");
-		s_client_instance = this;
-	}
-
-	Client::~Client() {
-		Console::StoreUserData();
-
-		if (m_pIconImage != nullptr && m_pIconImage->pixels != nullptr) {
-			stbi_image_free(m_pIconImage->pixels);
-			delete m_pIconImage;
-		}
-
-		if (m_pWindow != nullptr) {
-			glfwDestroyWindow(m_pWindow);
-		}
-		if (m_bGlfwInitialized) {
-			glfwTerminate();
-		}
-
-		if (s_client_instance == this) {
-			s_client_instance = nullptr;
-		}
-		LogInfo("Client closed");
-		CloseDebugLog();
 	}
 
 	void Client::update() {
 		glfwPollEvents();
-		const double time = glfwGetTime();
-		on_pre_update(m_dTimePrev - time);
+		Input::Poll();
+	}
 
-		on_update(m_dTimePrev - time);
+	void Client::render() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		on_render(m_dTimePrev - time);
 
-		on_post_update(m_dTimePrev - time);
+		// Render code goes here
+
 		glfwSwapBuffers(m_pWindow);
 	}
 
@@ -233,6 +238,10 @@ namespace gctk {
 	}
 	Color Client::get_background_color() const {
 		return m_cBackgroundColor;
+	}
+
+	Client* Client::Instance() {
+		return s_client_instance;
 	}
 
 	static bool UpdateWindowSize(const CVar* self, const std::string& value) {

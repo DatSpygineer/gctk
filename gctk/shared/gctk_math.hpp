@@ -170,6 +170,311 @@ namespace gctk {
 		}
 	};
 
+	struct Point {
+		int32_t x, y;
+
+		constexpr Point() : x(0), y(0) { }
+		constexpr Point(const int32_t x, const int32_t y) : x(x), y(y) { }
+
+		[[nodiscard]] constexpr float length() const { return std::sqrt(static_cast<float>(x * x + y * y)); }
+		[[nodiscard]] constexpr int32_t length_square() const { return x * x + y * y; }
+		[[nodiscard]] inline std::string to_string() const { return std::format("{}, {}", x, y); }
+		[[nodiscard]] constexpr int32_t dot(const Point& other) const { return x * other.x + y * other.y; }
+		[[nodiscard]] constexpr float distance(const Point& other) const { return (other - *this).length(); }
+		[[nodiscard]] constexpr Point normalized() const { return *this / static_cast<int32_t>(length()); }
+		[[nodiscard]] constexpr std::tuple<int32_t, int32_t> items() const { return std::make_tuple(x, y); }
+
+		static Point Min(const Point& a, const Point& b);
+		static Point Max(const Point& a, const Point& b);
+		static Point Clamp(const Point& x, const Point& min, const Point& max);
+
+		static const Point UNIT_X;
+		static const Point UNIT_Y;
+		static const Point ONE;
+		static const Point ZERO;
+
+		[[nodiscard]] constexpr Point operator+ (const Point& rhs) const {
+			return Point { x + rhs.x, y + rhs.y };
+		}
+		[[nodiscard]] constexpr Point operator- (const Point& rhs) const {
+			return Point { x - rhs.x, y - rhs.y };
+		}
+		[[nodiscard]] constexpr Point operator* (const Point& rhs) const {
+			return Point { x * rhs.x, y * rhs.y };
+		}
+		[[nodiscard]] constexpr Point operator* (const int32_t rhs) const {
+			return Point { x * rhs, y * rhs };
+		}
+		[[nodiscard]] constexpr Point operator/ (const Point& rhs) const {
+			return Point { x / rhs.x, y / rhs.y };
+		}
+		[[nodiscard]] constexpr Point operator/ (const int32_t rhs) const {
+			return Point { x / rhs, y / rhs };
+		}
+		[[nodiscard]] constexpr Point operator- () const {
+			return Point { -x, -y };
+		}
+		[[nodiscard]] constexpr bool operator== (const Point& rhs) const {
+			return x == rhs.x && y == rhs.y;
+		}
+		[[nodiscard]] constexpr bool operator!= (const Point& rhs) const {
+			return x != rhs.x || y != rhs.y;
+		}
+
+		Point& operator+= (const Point& rhs) {
+			x += rhs.x;
+			y += rhs.y;
+			return *this;
+		}
+		Point& operator-= (const Point& rhs) {
+			x -= rhs.x;
+			y -= rhs.y;
+			return *this;
+		}
+		Point& operator*= (const Point& rhs) {
+			x *= rhs.x;
+			y *= rhs.y;
+			return *this;
+		}
+		Point& operator*= (const int32_t rhs) {
+			x *= rhs;
+			y *= rhs;
+			return *this;
+		}
+		Point& operator/= (const Point& rhs) {
+			x /= rhs.x;
+			y /= rhs.y;
+			return *this;
+		}
+		Point& operator/= (const int32_t rhs) {
+			x /= rhs;
+			y /= rhs;
+			return *this;
+		}
+
+		constexpr int32_t operator[] (const int index) const {
+			if (index == 0) return x;
+			if (index == 1) return y;
+			throw std::out_of_range("Index out of range");
+		}
+		int32_t& operator[] (const int index) {
+			if (index == 0) return x;
+			if (index == 1) return y;
+			throw std::out_of_range("Index out of range");
+		}
+	};
+	using FPoint = Vector2;
+
+	struct Size {
+		int32_t width, height;
+
+		constexpr Size() : width(0), height(0) { }
+		constexpr Size(const int32_t width, const int32_t height) : width(width), height(height) { }
+
+		[[nodiscard]] constexpr Size operator+ (const Size& rhs) const {
+			return Size { width + rhs.width, height + rhs.height };
+		}
+		[[nodiscard]] constexpr Size operator- (const Size& rhs) const {
+			return Size { width - rhs.width, height - rhs.height };
+		}
+		[[nodiscard]] constexpr Size operator* (const Size& rhs) const {
+			return Size { width * rhs.width, height * rhs.height };
+		}
+		[[nodiscard]] constexpr Size operator* (const int32_t rhs) const {
+			return Size { width * rhs, height * rhs };
+		}
+		[[nodiscard]] constexpr Size operator/ (const Size& rhs) const {
+			return Size { width / rhs.width, height / rhs.height };
+		}
+		[[nodiscard]] constexpr Size operator/ (const int32_t rhs) const {
+			return Size { width / rhs, height / rhs };
+		}
+		[[nodiscard]] constexpr Size operator- () const {
+			return Size { -width, -height };
+		}
+		[[nodiscard]] constexpr bool operator== (const Size& rhs) const {
+			return width == rhs.width && height == rhs.height;
+		}
+		[[nodiscard]] constexpr bool operator!= (const Size& rhs) const {
+			return width != rhs.width || height != rhs.height;
+		}
+
+		Size& operator+= (const Size& rhs) {
+			width += rhs.width;
+			height += rhs.height;
+			return *this;
+		}
+		Size& operator-= (const Size& rhs) {
+			width -= rhs.width;
+			height -= rhs.height;
+			return *this;
+		}
+		Size& operator*= (const Size& rhs) {
+			width *= rhs.width;
+			height *= rhs.height;
+			return *this;
+		}
+		Size& operator*= (const int32_t rhs) {
+			width *= rhs;
+			height *= rhs;
+			return *this;
+		}
+		Size& operator/= (const Size& rhs) {
+			width /= rhs.width;
+			height /= rhs.height;
+			return *this;
+		}
+		Size& operator/= (const int32_t rhs) {
+			width /= rhs;
+			height /= rhs;
+			return *this;
+		}
+	};
+	struct FSize {
+		float width, height;
+
+		constexpr FSize() : width(0), height(0) { }
+		constexpr FSize(const float width, const float height) : width(width), height(height) { }
+
+		[[nodiscard]] constexpr FSize operator+ (const FSize& rhs) const {
+			return FSize { width + rhs.width, height + rhs.height };
+		}
+		[[nodiscard]] constexpr FSize operator- (const FSize& rhs) const {
+			return FSize { width - rhs.width, height - rhs.height };
+		}
+		[[nodiscard]] constexpr FSize operator* (const FSize& rhs) const {
+			return FSize { width * rhs.width, height * rhs.height };
+		}
+		[[nodiscard]] constexpr FSize operator* (const int32_t rhs) const {
+			return FSize { width * rhs, height * rhs };
+		}
+		[[nodiscard]] constexpr FSize operator/ (const FSize& rhs) const {
+			return FSize { width / rhs.width, height / rhs.height };
+		}
+		[[nodiscard]] constexpr FSize operator/ (const int32_t rhs) const {
+			return FSize { width / rhs, height / rhs };
+		}
+		[[nodiscard]] constexpr FSize operator- () const {
+			return FSize { -width, -height };
+		}
+		[[nodiscard]] constexpr bool operator== (const FSize& rhs) const {
+			return width == rhs.width && height == rhs.height;
+		}
+		[[nodiscard]] constexpr bool operator!= (const FSize& rhs) const {
+			return width != rhs.width || height != rhs.height;
+		}
+
+		FSize& operator+= (const FSize& rhs) {
+			width += rhs.width;
+			height += rhs.height;
+			return *this;
+		}
+		FSize& operator-= (const FSize& rhs) {
+			width -= rhs.width;
+			height -= rhs.height;
+			return *this;
+		}
+		FSize& operator*= (const FSize& rhs) {
+			width *= rhs.width;
+			height *= rhs.height;
+			return *this;
+		}
+		FSize& operator*= (const int32_t rhs) {
+			width *= rhs;
+			height *= rhs;
+			return *this;
+		}
+		FSize& operator/= (const FSize& rhs) {
+			width /= rhs.width;
+			height /= rhs.height;
+			return *this;
+		}
+		FSize& operator/= (const int32_t rhs) {
+			width /= rhs;
+			height /= rhs;
+			return *this;
+		}
+	};
+
+	struct Rect {
+		Point origin;
+		Size size;
+
+		constexpr Rect(const Point& origin, const Size& size) : origin(origin), size(size) { }
+		constexpr Rect(const int32_t x, const int32_t y, const int32_t width, const int32_t height) : origin(x, y), size(width, height) { }
+
+		[[nodiscard]] constexpr Rect operator+ (const Point& offset) const {
+			return Rect { origin + offset, size };
+		}
+		[[nodiscard]] constexpr Rect operator- (const Point& offset) const {
+			return Rect { origin - offset, size };
+		}
+		[[nodiscard]] constexpr Rect operator+ (const Size& offset) const {
+			return Rect { origin, size + offset };
+		}
+		[[nodiscard]] constexpr Rect operator- (const Size& offset) const {
+			return Rect { origin, size - offset };
+		}
+		[[nodiscard]] constexpr Rect operator* (const Size& offset) const {
+			return Rect { origin, size * offset };
+		}
+		[[nodiscard]] constexpr Rect operator/ (const Size& offset) const {
+			return Rect { origin, size / offset };
+		}
+		[[nodiscard]] constexpr Rect operator* (const int32_t offset) const {
+			return Rect { origin, size * offset };
+		}
+		[[nodiscard]] constexpr Rect operator/ (const int32_t offset) const {
+			return Rect { origin, size / offset };
+		}
+
+		[[nodiscard]] constexpr bool operator== (const Rect& other) const {
+			return origin == other.origin && size == other.size;
+		}
+		[[nodiscard]] constexpr bool operator!= (const Rect& other) const {
+			return origin != other.origin || size != other.size;
+		}
+	};
+	struct FRect {
+		FPoint origin;
+		FSize size;
+
+		constexpr FRect(const FPoint& origin, const FSize& size) : origin(origin), size(size) { }
+		constexpr FRect(const float x, const float y, const float width, const float height) : origin(x, y), size(width, height) { }
+
+		[[nodiscard]] constexpr FRect operator+ (const FPoint& offset) const {
+			return FRect { origin + offset, size };
+		}
+		[[nodiscard]] constexpr FRect operator- (const FPoint& offset) const {
+			return FRect { origin - offset, size };
+		}
+		[[nodiscard]] constexpr FRect operator+ (const FSize& offset) const {
+			return FRect { origin, size + offset };
+		}
+		[[nodiscard]] constexpr FRect operator- (const FSize& offset) const {
+			return FRect { origin, size - offset };
+		}
+		[[nodiscard]] constexpr FRect operator* (const FSize& offset) const {
+			return FRect { origin, size * offset };
+		}
+		[[nodiscard]] constexpr FRect operator/ (const FSize& offset) const {
+			return FRect { origin, size / offset };
+		}
+		[[nodiscard]] constexpr FRect operator* (const int32_t offset) const {
+			return FRect { origin, size * offset };
+		}
+		[[nodiscard]] constexpr FRect operator/ (const int32_t offset) const {
+			return FRect { origin, size / offset };
+		}
+
+		[[nodiscard]] constexpr bool operator== (const FRect& other) const {
+			return origin == other.origin && size == other.size;
+		}
+		[[nodiscard]] constexpr bool operator!= (const FRect& other) const {
+			return origin != other.origin || size != other.size;
+		}
+	};
+
 	struct Vector3 {
 		float x, y, z;
 
@@ -611,10 +916,10 @@ namespace gctk {
 		}
 
 		inline float& item(const size_t idx) {
-			return column(idx / 4)[idx % 4];
+			return column(idx / 4)[static_cast<int>(idx % 4u)];
 		}
 		[[nodiscard]] constexpr float item(const size_t idx) const {
-			return column(idx / 4)[idx % 4];
+			return column(idx / 4)[static_cast<int>(idx % 4u)];
 		}
 
 		inline Vector4& column(const size_t idx) {

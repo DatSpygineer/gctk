@@ -1,4 +1,4 @@
-#include "gctk_paths.hpp"
+#include "gctk_filesys.hpp"
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -9,11 +9,11 @@
 #endif
 
 namespace gctk::Paths {
-	static std::filesystem::path s_basepath = std::filesystem::current_path().parent_path().parent_path().parent_path();
-	static std::filesystem::path s_userpath;
+	static Path s_basepath = current_path().parent_path().parent_path().parent_path();
+	static Path s_userpath;
 
 	void init(const std::string& argv0, const std::string& name) {
-		s_basepath = std::filesystem::path(argv0).parent_path().parent_path().parent_path();
+		s_basepath = Path(argv0).parent_path().parent_path().parent_path();
 #ifdef _WIN32
 		std::string userpath_base;
 		userpath_base.reserve(MAX_PATH);
@@ -26,19 +26,19 @@ namespace gctk::Paths {
 		s_userpath /= name;
 	}
 
-	std::filesystem::path base_path() {
+	Path base_path() {
 		return s_basepath;
 	}
-	std::filesystem::path bin_path() {
+	Path bin_path() {
 		return s_basepath / "bin" / (GCTK_OS_NAME "_" GCTK_ARCH_NAME);
 	}
-	std::filesystem::path cfg_path() {
+	Path cfg_path() {
 		return s_basepath / "cfg";
 	}
-	std::filesystem::path res_path() {
+	Path res_path() {
 		return s_basepath / "res";
 	}
-	std::filesystem::path user_path() {
+	Path user_path() {
 		return s_userpath;
 	}
 }
