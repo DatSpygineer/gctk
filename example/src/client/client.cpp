@@ -1,11 +1,31 @@
-#include "gctk_client.hpp"
-#include "gctk_api.hpp"
+#include "gctk.hpp"
 
-GCTK_GAME_API int ClientMain(const int argc, char** argv) {
-	gctk::Client client(argc, argv, GCTK_GAME_NAME);
-	client.set_background_color(gctk::Color::CornflowerBlue());
-	while (!client.should_exit()) {
-		client.update();
+#include <print>
+
+using namespace gctk;
+
+static Client* client = nullptr;
+
+GCTK_GAME_API void ClientStartup(const int argc, char** argv) {
+	client = new Client(argc, argv, GCTK_GAME_NAME);
+	client->set_background_color(Color::CornflowerBlue());
+
+	Input::CreateAction("test", "enter");
+
+	client->init();
+}
+GCTK_GAME_API bool ClientUpdate() {
+	client->update();
+	if (Input::ActionPressed("test")) {
+		LogInfo("Test button pressed!");
+	} else if (Input::ActionReleased("test")) {
+		LogInfo("Test button released!");
 	}
-	return 0;
+	return !client->should_exit();
+}
+GCTK_GAME_API void ClientRender() {
+	client->render();
+}
+GCTK_GAME_API void ClientShutdown() {
+	delete client;
 }
