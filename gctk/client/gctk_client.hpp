@@ -15,7 +15,10 @@ namespace gctk {
 		Color m_cBackgroundColor;
 		std::string m_sName;
 	public:
-		Client(int argc, char** argv, const std::string& name);
+		Client(int argc, char** argv, const std::string& name,
+			const std::vector<std::string>& asset_packs,
+			const std::optional<Path>& mod_path = std::nullopt
+		);
 		virtual ~Client();
 
 		void init();

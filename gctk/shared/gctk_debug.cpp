@@ -69,6 +69,17 @@ namespace gctk {
 	}
 
 	void DoCrash(const std::string& message) {
+		ErrorPopup(message);
+		std::println("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message);
+		if (s_logfile.is_open()) {
+			s_logfile << std::format("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message) << std::endl;
+			s_logfile.flush();
+			s_logfile.close();
+		}
+		exit(1);
+	}
+
+	void ErrorPopup(const std::string& message) {
 #ifdef _WIN32
 		MessageBoxA(nullptr, message.c_str(), "Fatal Error!", MB_OK | MB_ICONERROR);
 #else
@@ -78,13 +89,6 @@ namespace gctk {
 			message
 		).c_str());
 #endif
-		std::println("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message);
-		if (s_logfile.is_open()) {
-			s_logfile << std::format("{:%Y.%m.%d %H:%M:%S} - Game has crashed! \"{}\"", std::chrono::system_clock::now(), message) << std::endl;
-			s_logfile.flush();
-			s_logfile.close();
-		}
-		exit(1);
 	}
 
 	void CloseDebugLog() {
@@ -96,7 +100,7 @@ namespace gctk {
 
 	static std::ofstream& GetLogFile() {
 		if (!s_logfile.is_open()) {
-			auto path = Paths::base_path() / "logs";
+			auto path = Paths::GameBasePath() / "logs";
 			if (!Paths::exists(path)) {
 				Paths::create_directories(path);
 			}

@@ -457,7 +457,7 @@ namespace gctk {
 	}
 
 	void Input::SaveInputs() {
-		const auto path = Paths::cfg_path() / "keybinds.cfg";
+		const auto path = Paths::CfgPath() / "keybinds.cfg";
 		std::ofstream ofs(path);
 
 		for (const auto& [name, keycode] : s_actions) {

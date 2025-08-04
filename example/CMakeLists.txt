@@ -15,4 +15,4 @@ gctk_project(gctk_example)
 
 add_gctk_client(gctk_example ${GCTK_EXAMPLE_GAME_DIRECTORY} ${GCTK_CLIENT_SOURCES} ${GCTK_SHARED_SOURCES})
 add_gctk_server(gctk_example ${GCTK_EXAMPLE_GAME_DIRECTORY} ${GCTK_SERVER_SOURCES} ${GCTK_SHARED_SOURCES})
-add_gctk_launcher(gctk_example ${GCTK_EXAMPLE_GAME_DIRECTORY} ${GCTK_LAUNCHER_SOURCES})
+add_gctk_launcher_singleplayer(gctk_example ${GCTK_EXAMPLE_GAME_DIRECTORY} ${GCTK_LAUNCHER_SOURCES})

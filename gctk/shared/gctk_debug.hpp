@@ -15,6 +15,7 @@ namespace gctk {
 	void AssertLog(const std::string& expression, const std::string& failure_message, bool fatal, const char* file, long line);
 	void DoCrash(const std::string& message);
 	void CloseDebugLog();
+	void ErrorPopup(const std::string& message);
 
 	class EngineErrorException final : public std::exception {
 		std::string m_sMessage;
@@ -52,6 +53,7 @@ namespace gctk {
 
 #define LogWarn(__message) gctk::Log(__message, gctk::MessageLevel::Warning, __FILE__, __LINE__)
 #define LogErr(__message) gctk::Log(__message, gctk::MessageLevel::Error,   __FILE__, __LINE__)
+#define LogErrAndPopup(__message) gctk::Log(__message, gctk::MessageLevel::Error,   __FILE__, __LINE__); gctk::ErrorPopup(__message)
 #define FatalError(__message) { LogErr(__message); gctk::DoCrash(__message); }
 #define LogErrThrow(__message) { throw gctk::EngineErrorException(__message, __FILE__, __LINE__); }
 #define Assert(__expression, __failure_message) \

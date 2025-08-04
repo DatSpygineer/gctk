@@ -19,12 +19,16 @@ namespace gctk {
 
 	static Client* s_client_instance = nullptr;
 
-	Client::Client(const int argc, char** argv, const std::string& name) :
+	Client::Client(const int argc, char** argv, const std::string& name,
+			const std::vector<std::string>& asset_packs,
+			const std::optional<Path>& mod_path) :
 		m_bGlfwInitialized(false), m_pIconImage(nullptr), m_sName(name) {
 		if (s_client_instance != nullptr) {
 			FatalError("Client already running!");
 		}
 
+		Paths::Initialize(argv[0], name);
+		AssetSystem::Initialize(asset_packs, mod_path);
 		Console::LoadConfig("userdata.cfg");
 
 		s_client_instance = this;
@@ -107,9 +111,9 @@ namespace gctk {
 		set_window_title(m_sName);
 #endif
 
-		if (Paths::exists(Paths::res_path() / "game_icon.png")) {
+		if (Paths::exists(Paths::ResourcePath() / "game_icon.png")) {
 			int icon_x, icon_y;
-			const auto icon_data = stbi_load((Paths::res_path() / "game_icon.png").string().c_str(), &icon_x, &icon_y, nullptr, 4);
+			const auto icon_data = stbi_load((Paths::ResourcePath() / "game_icon.png").string().c_str(), &icon_x, &icon_y, nullptr, 4);
 
 			if (icon_data != nullptr) {
 				m_pIconImage = new GLFWimage;
@@ -117,12 +121,12 @@ namespace gctk {
 				m_pIconImage->height = icon_y;
 				m_pIconImage->pixels = icon_data;
 				glfwSetWindowIcon(m_pWindow, 1, m_pIconImage);
-				LogInfo(std::format("Loaded icon \"{}\"", (Paths::res_path() / "game_icon.png").string()));
+				LogInfo(std::format("Loaded icon \"{}\"", (Paths::ResourcePath() / "game_icon.png").string()));
 			} else {
-				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::res_path() / "game_icon.png").string()));
+				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::ResourcePath() / "game_icon.png").string()));
 			}
 		} else {
-			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::res_path() / "game_icon.png").string()));
+			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::ResourcePath() / "game_icon.png").string()));
 		}
 
 		Input::Initialize(*this);

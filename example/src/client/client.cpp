@@ -7,7 +7,7 @@ using namespace gctk;
 static Client* client = nullptr;
 
 GCTK_GAME_API void ClientStartup(const int argc, char** argv) {
-	client = new Client(argc, argv, GCTK_GAME_NAME);
+	client = new Client(argc, argv, GCTK_GAME_NAME, { "assets.gpkg" });
 	client->set_background_color(Color::CornflowerBlue());
 
 	Input::CreateAction("test", "enter");

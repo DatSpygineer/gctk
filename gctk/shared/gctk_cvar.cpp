@@ -223,7 +223,7 @@ namespace gctk {
 	}
 
 	bool Console::ConfigExists(const std::string& filename) {
-		auto path = Paths::cfg_path() / filename;
+		auto path = Paths::CfgPath() / filename;
 		if (!path.has_extension()) {
 			path += ".cfg";
 		}
@@ -231,7 +231,7 @@ namespace gctk {
 	}
 
 	bool Console::LoadConfig(const std::string& filename) {
-		auto path = Paths::cfg_path() / filename;
+		auto path = Paths::CfgPath() / filename;
 		if (!path.has_extension()) {
 			path += ".cfg";
 		}
@@ -321,7 +321,7 @@ namespace gctk {
 
 #ifdef GCTK_CLIENT
 	bool Console::StoreUserData() {
-		std::ofstream f(Paths::cfg_path() / "userdata.cfg");
+		std::ofstream f(Paths::CfgPath() / "userdata.cfg");
 		if (!f.is_open()) {
 			return false;
 		}

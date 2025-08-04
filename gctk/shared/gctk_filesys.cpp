@@ -12,7 +12,7 @@ namespace gctk::Paths {
 	static Path s_basepath = current_path().parent_path().parent_path().parent_path();
 	static Path s_userpath;
 
-	void init(const std::string& argv0, const std::string& name) {
+	void Initialize(const std::string& argv0, const std::string& name) {
 		s_basepath = Path(argv0).parent_path().parent_path().parent_path();
 #ifdef _WIN32
 		std::string userpath_base;
@@ -26,19 +26,19 @@ namespace gctk::Paths {
 		s_userpath /= name;
 	}
 
-	Path base_path() {
+	Path GameBasePath() {
 		return s_basepath;
 	}
-	Path bin_path() {
+	Path GameBinaryPath() {
 		return s_basepath / "bin" / (GCTK_OS_NAME "_" GCTK_ARCH_NAME);
 	}
-	Path cfg_path() {
+	Path CfgPath() {
 		return s_basepath / "cfg";
 	}
-	Path res_path() {
+	Path ResourcePath() {
 		return s_basepath / "res";
 	}
-	Path user_path() {
+	Path UserDataPath() {
 		return s_userpath;
 	}
 }

@@ -5,6 +5,7 @@
 
 #ifdef _WIN32
 #define CLIENT_DLL_NAME "game_client.dll"
+#define SERVER_DLL_NAME "game_server.dll"
 
 #include <windows.h>
 
@@ -21,39 +22,83 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine,
 	LocalFree(argvW);
 #else
 #define CLIENT_DLL_NAME "libgame_client.so"
+#define SERVER_DLL_NAME "libgame_server.so"
 
 int main(const int argc, char** argv) {
 #endif
-	gctk::Paths::init(argv[0], GCTK_GAME_NAME);
+	int exit_code = 0;
 
-	const gctk::DLL client_dll(gctk::Paths::bin_path() / CLIENT_DLL_NAME);
+	gctk::Paths::Initialize(argv[0], GCTK_GAME_NAME);
+
+	const gctk::DLL client_dll(gctk::Paths::GameBinaryPath() / CLIENT_DLL_NAME);
 	const auto client_start = client_dll.get_symbol<void(*)(int argc, char** argv)>("ClientStartup");
 	const auto client_update = client_dll.get_symbol<bool(*)()>("ClientUpdate");
 	const auto client_render = client_dll.get_symbol<void(*)()>("ClientRender");
 	const auto client_shutdown = client_dll.get_symbol<void(*)()>("ClientShutdown");
 
-	if (client_start != nullptr) {
+#ifdef GCTK_SINGLEPLAYER
+	const gctk::DLL server_dll(gctk::Paths::GameBinaryPath() / SERVER_DLL_NAME);
+	const auto server_start = client_dll.get_symbol<void(*)(int argc, char** argv)>("ServerStartup");
+	const auto server_heartbeat = client_dll.get_symbol<void(*)()>("ServerHeartbeat");
+	const auto server_shutdown = client_dll.get_symbol<void(*)()>("ServerShutdown");
+#endif
+
+	if (client_start == nullptr) {
+		LogErrAndPopup(std::format("Could not load symbol \"ClientStartup\" from library \"{}\"", CLIENT_DLL_NAME));
+		exit_code = 1;
+		goto __GCTK_LAUNCHER_EXIT;
+	}
+
+#ifdef GCTK_SINGLEPLAYER
+	if (server_start == nullptr) {
+		LogErrAndPopup(std::format("Could not load symbol \"ServerStartup\" from library \"{}\"", SERVER_DLL_NAME));
+		exit_code = 1;
+		goto __GCTK_LAUNCHER_EXIT;
+	}
+	if (server_heartbeat == nullptr) {
+		LogErrAndPopup(std::format("Could not load symbol \"ServerHeartbeat\" from library \"{}\"", SERVER_DLL_NAME));
+		exit_code = 1;
+		goto __GCTK_LAUNCHER_EXIT;
+	}
+#endif
+
+	try {
 		client_start(argc, argv);
+#ifdef GCTK_SINGLEPLAYER
+		server_start(argc, argv);
+#endif
 
 		if (client_update != nullptr) {
-			while (client_update()) {
+			bool running = true;
+			while (running) {
+#ifdef GCTK_SINGLEPLAYER
+				server_heartbeat();
+#endif
+				running = client_update();
 				if (client_render != nullptr) {
 					client_render();
 				}
 			}
 		}
-
+#ifdef GCTK_SINGLEPLAYER
+		if (server_shutdown != nullptr) {
+			server_shutdown();
+		}
+#endif
 		if (client_shutdown != nullptr) {
 			client_shutdown();
 		}
-#ifdef _WIN32
-		for (auto& arg : argv) {
-			delete[] arg;
-		}
-		delete[] argv;
-#endif
-		return 0;
+	} catch (const std::exception& ex) {
+		LogErrAndPopup(std::format("Runtime error: Exception thrown \"{}\"", ex.what()));
+		exit_code = 1;
 	}
-	FatalError(std::format("Could not load symbol \"ClientMain\" from library \"{}\"", CLIENT_DLL_NAME));
-	return 1;
+
+__GCTK_LAUNCHER_EXIT:
+#ifdef _WIN32
+	for (auto& arg : argv) {
+		delete[] arg;
+	}
+	delete[] argv;
+#endif
+	return exit_code;
 }

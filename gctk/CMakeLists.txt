@@ -65,6 +65,14 @@ function(add_gctk_launcher TARGET GAME_OUTPUT_DIRECTORY)
         RUNTIME_OUTPUT_DIRECTORY ${GAME_OUTPUT_DIRECTORY}/bin/${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}
     )
 endfunction()
+function(add_gctk_launcher_singleplayer TARGET GAME_OUTPUT_DIRECTORY)
+    add_executable(${TARGET} ${ARGN})
+    target_link_libraries(${TARGET} PRIVATE gctk::client ${TARGET}_client)
+    target_compile_definitions(${TARGET} PRIVATE -DGCTK_GAME_NAME="${TARGET}" -DGCTK_SINGLEPLAYER)
+    set_target_properties(${TARGET} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${GAME_OUTPUT_DIRECTORY}/bin/${CMAKE_SYSTEM_NAME}_${CMAKE_SYSTEM_PROCESSOR}
+    )
+endfunction()
 
 function (gctk_project TARGET)
     project(${TARGET})
