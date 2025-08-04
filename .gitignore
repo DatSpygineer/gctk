@@ -11,4 +11,5 @@ cmake-build-release
 # Ignore example binaries, logs and user config
 example/game/bin
 example/game/logs
+example/game/cfg/keybinds.cfg
 example/game/cfg/userdata.cfg
