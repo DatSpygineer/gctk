@@ -5,6 +5,7 @@
 
 #include "gctk_filesys.hpp"
 #include "gctk_debug.hpp"
+#include "gctk_version.hpp"
 
 namespace gctk {
 	enum class AssetType {
@@ -65,8 +66,9 @@ namespace gctk {
 		FILE* m_pStream;
 		std::unordered_map<std::string, EntryInfo> m_entries;
 		uint32_t m_uDataOrigin;
+		Version m_version;
 	public:
-		AssetPack() : m_pStream(nullptr), m_uDataOrigin(0) { }
+		AssetPack() : m_pStream(nullptr), m_uDataOrigin(0), m_version(CurrentVersion()) { }
 		~AssetPack();
 
 		[[nodiscard]] constexpr bool is_open() const { return m_pStream != nullptr; }
@@ -74,6 +76,9 @@ namespace gctk {
 
 		[[nodiscard]] constexpr size_t entry_count() const { return m_entries.size(); }
 		[[nodiscard]] inline bool contains_entry(const std::string& name) const { return m_entries.contains(name); }
+		[[nodiscard]] constexpr Version version() const { return m_version; }
+
+		static constexpr Version CurrentVersion() { return Version { 0, 1 }; }
 
 		friend class Asset;
 	};

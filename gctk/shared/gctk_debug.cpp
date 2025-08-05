@@ -4,6 +4,7 @@
 #include <chrono>
 #include <print>
 
+#include "gctk_version.hpp"
 #include "gctk_filesys.hpp"
 
 #ifdef _WIN32
@@ -84,7 +85,7 @@ namespace gctk {
 		MessageBoxA(nullptr, message.c_str(), "Fatal Error!", MB_OK | MB_ICONERROR);
 #else
 		system(std::format(
-			R"({} --error "Game has crashed!\n{}" --title "Fatal Error")",
+			R"({} --error "{}" --title "Fatal Error")",
 			std::system("command -v kdialog > /dev/null 2>&1") == 0 ? "kdialog" : "zenity",
 			message
 		).c_str());
@@ -116,7 +117,7 @@ namespace gctk {
 				LogWarn(std::format("Failed to open log file \"{}\"", path.string()));
 			} else {
 				LogInfo(std::format("Opened log file \"{}\"", path.string()));
-				s_logfile << "================ GCTk v" << GCTK_VERSION_STRING << " ================" << std::endl;
+				s_logfile << "================ GCTk v" << EngineVersion << " ================" << std::endl;
 			}
 			s_no_filelog = false;
 		}

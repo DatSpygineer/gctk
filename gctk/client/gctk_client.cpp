@@ -22,13 +22,14 @@ namespace gctk {
 	Client::Client(const int argc, char** argv, const std::string& name,
 			const std::vector<std::string>& asset_packs,
 			const std::optional<Path>& mod_path) :
-		m_bGlfwInitialized(false), m_pIconImage(nullptr), m_sName(name) {
+		m_pWindow(nullptr), m_bGlfwInitialized(false), m_pIconImage(nullptr), m_sName(name) {
 		if (s_client_instance != nullptr) {
 			FatalError("Client already running!");
 		}
 
 		Paths::Initialize(argv[0], name);
 		AssetSystem::Initialize(asset_packs, mod_path);
+		Console::LoadConfig("autoexec.cfg");
 		Console::LoadConfig("userdata.cfg");
 
 		s_client_instance = this;
@@ -121,12 +122,12 @@ namespace gctk {
 				m_pIconImage->height = icon_y;
 				m_pIconImage->pixels = icon_data;
 				glfwSetWindowIcon(m_pWindow, 1, m_pIconImage);
-				LogInfo(std::format("Loaded icon \"{}\"", (Paths::ResourcePath() / "game_icon.png").string()));
+				LogInfo(std::format("Loaded icon \"{}\"", (Paths::ResourcePath() / "game_icon.png")));
 			} else {
-				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::ResourcePath() / "game_icon.png").string()));
+				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::ResourcePath() / "game_icon.png")));
 			}
 		} else {
-			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::ResourcePath() / "game_icon.png").string()));
+			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::ResourcePath() / "game_icon.png")));
 		}
 
 		Input::Initialize(*this);
@@ -140,6 +141,7 @@ namespace gctk {
 	}
 
 	void Client::render() {
+		glClearColor(m_cBackgroundColor.r, m_cBackgroundColor.g, m_cBackgroundColor.b, m_cBackgroundColor.a);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Render code goes here
@@ -238,7 +240,6 @@ namespace gctk {
 
 	void Client::set_background_color(const Color& color) {
 		m_cBackgroundColor = color;
-		glClearColor(m_cBackgroundColor.r, m_cBackgroundColor.g, m_cBackgroundColor.b, m_cBackgroundColor.a);
 	}
 	Color Client::get_background_color() const {
 		return m_cBackgroundColor;

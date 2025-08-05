@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "gctk_math.hpp"
+#include "gctk_filesys.hpp"
 
 #include <GLFW/glfw3.h>
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gctk_api.hpp>
+#include <gctk_version.hpp>
 #include <gctk_math.hpp>
 #include <gctk_cvar.hpp>
 #include <gctk_debug.hpp>

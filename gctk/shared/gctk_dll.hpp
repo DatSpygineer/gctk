@@ -18,8 +18,9 @@ namespace gctk {
 	class DLL {
 		void* m_pModule;
 		bool m_bIsCopy;
+		Path m_sPath;
 	public:
-		explicit DLL(const Path& path) : m_bIsCopy(false) {
+		explicit DLL(const Path& path) : m_bIsCopy(false), m_sPath(path) {
 #ifdef _WIN32
 			m_pModule = (void*)(LoadLibraryW(path.c_str()));
 #else
@@ -41,11 +42,20 @@ namespace gctk {
 
 		template<PointerType T>
 		inline T get_symbol(const std::string& name) const {
+			const char* name_cstr = name.c_str();
+			T result = nullptr;
 #ifdef _WIN32
-			return GetProcAddress((HMODULE)m_pModule, name.c_str());
+			result = reinterpret_cast<T>(GetProcAddress((HMODULE)m_pModule, name_cstr));
 #else
-			return reinterpret_cast<T>(dlsym(m_pModule, name.c_str()));
+			result = reinterpret_cast<T>(dlsym(m_pModule, name_cstr));
 #endif
+			if (result == nullptr) {
+				LogErr(std::format("Failed to load symbol \"{}\" from DLL \"{}\"", name_cstr, m_sPath));
+			}
+			return result;
 		}
+
+		[[nodiscard]] constexpr bool is_valid() const noexcept { return m_pModule != nullptr; }
+		[[nodiscard]] constexpr operator bool() const noexcept { return m_pModule != nullptr; }
 	};
 }

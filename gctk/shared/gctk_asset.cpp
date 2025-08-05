@@ -14,9 +14,7 @@ namespace gctk {
 	static bool s_assets_initialized = false;
 
 	static constexpr uint8_t s_pack_identifier[4] = { 'G', 'P', 'K', 'G' };
-	static constexpr std::array<std::string_view, 4> s_text_asset_extensions = {
-		".txt", ".ini", ".cfg"
-	};
+	static constexpr uint8_t s_pack_identifier_mirrored[4] = { 'G', 'K', 'P', 'G' };
 
 	Asset::~Asset() {
 		if (m_pData != nullptr) {
@@ -34,7 +32,7 @@ namespace gctk {
 				auto ext = StringUtil::ToLower(Path(path).extension().string());
 				AssetType type;
 
-				if (std::any_of(s_text_asset_extensions.begin(), s_text_asset_extensions.end(), ext)) {
+				if (ext == ".txt" || ext == ".cfg" || ext == ".ini") {
 					type = AssetType::PlainText;
 				} else if (ext == ".json") {
 					type = AssetType::JsonData;
@@ -98,25 +96,57 @@ namespace gctk {
 		}
 
 		uint32_t identifier;
-		if (fread(&identifier, sizeof(uint32_t), 1, f) < 4) {
+		if (fread(&identifier, sizeof(uint32_t), 1, f) <= 0) {
 			LogErr(std::format("Failed to read identifier of asset pack \"{}\"", path));
 			fclose(f);
 			return nullptr;
 		}
 
-		if (memcmp(&identifier, s_pack_identifier, 4) != 0) {
+		if (memcmp(&identifier, s_pack_identifier, 4) != 0 && memcmp(&identifier, s_pack_identifier_mirrored, 4) != 0) {
 			LogErr(std::format("Failed to load asset pack \"{}\": Identifier is invalid", path));
 			fclose(f);
 			return nullptr;
 		}
 
+		uint8_t major, minor;
+		if (fread(&major, sizeof(uint8_t), 1, f) <= 0) {
+			LogErr(std::format("Failed to read version of asset pack \"{}\"", path));
+			fclose(f);
+			return nullptr;
+		}
+		if (fread(&minor, sizeof(uint8_t), 1, f) <= 0) {
+			LogErr(std::format("Failed to read version of asset pack \"{}\"", path));
+			fclose(f);
+			return nullptr;
+		}
+
+		const Version version(major, minor);
+
+		if (version > CurrentVersion()) {
+			LogErr(std::format("Failed to load asset pack \"{}\": Unsupported archive version {}.{}", path, version.major, version.minor));
+			fclose(f);
+			return nullptr;
+		}
+
+		if (version < CurrentVersion()) {
+			// TODO: Add version migration, if needed
+		}
+
 		uint32_t data_origin = 0;
-		fread(&data_origin, sizeof(uint32_t), 1, f);
+		if (fread(&data_origin, sizeof(uint32_t), 1, f) <= 0) {
+			LogErr(std::format("Failed to read data origin of asset pack \"{}\"", path));
+			fclose(f);
+			return nullptr;
+		}
 		uint32_t entry_count;
-		fread(&entry_count, sizeof(uint32_t), 1, f);
+		if (fread(&entry_count, sizeof(uint32_t), 1, f) <= 0) {
+			LogErr(std::format("Failed to read entry count of asset pack \"{}\"", path));
+			fclose(f);
+			return nullptr;
+		}
 
 		if (entry_count == 0) {
-			LogErr(std::format("Failed to load asset pack \"{}\": Entry count must be greater then zero!"));
+			LogErr(std::format("Failed to load asset pack \"{}\": Entry count must be greater then zero!", path));
 			fclose(f);
 			return nullptr;
 		}
@@ -128,12 +158,12 @@ namespace gctk {
 			uint16_t name_length;
 			std::string name;
 
-			fread(&entry_origin, sizeof(uint32_t), 1, f);
-			fread(&entry_size, sizeof(uint16_t), 1, f);
 			fread(&name_length, sizeof(uint16_t), 1, f);
-
 			name.resize(name_length);
 			fread(name.data(), sizeof(char), name_length, f);
+
+			fread(&entry_origin, sizeof(uint32_t), 1, f);
+			fread(&entry_size, sizeof(uint16_t), 1, f);
 			entries.emplace(name, EntryInfo { entry_origin, entry_size });
 		}
 
@@ -147,6 +177,7 @@ namespace gctk {
 		asset_pack->m_pStream = f;
 		asset_pack->m_uDataOrigin = data_origin;
 		asset_pack->m_entries = std::move(entries);
+		asset_pack->m_version = version;
 		fseek(f, data_origin, SEEK_SET);
 		return asset_pack;
 	}

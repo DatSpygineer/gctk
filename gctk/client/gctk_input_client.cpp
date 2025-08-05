@@ -19,11 +19,11 @@
 
 namespace gctk {
 	CONCOMMAND(bind, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 2, "Expected 2 arguments");
+		AssertThrow(args.size() == 2, std::format("Expected 2 arguments, got {}", args.size()));
 		Input::CreateAction(args.at(0), args.at(1));
 	}
 	CONCOMMAND(bind_axis, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 3, "Expected 3 arguments");
+		AssertThrow(args.size() == 3, std::format("Expected 3 arguments, got {}", args.size()));
 		Input::CreateAxis(args.at(0), args.at(1), args.at(2));
 	}
 

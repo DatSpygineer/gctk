@@ -51,6 +51,12 @@ namespace gctk {
 	CVar::CVar(const std::string& name, std::string&& defaultValue, const int flags) :
 		CVar(name, std::move(defaultValue), flags, ValidateAlwaysTrue) { }
 
+	CVar::CVar(std::string&& name, const std::string& defaultValue, int flags) :
+		CVar(std::move(name), defaultValue, flags, ValidateAlwaysTrue) { }
+
+	CVar::CVar(std::string&& name, std::string&& defaultValue, int flags) :
+		CVar(std::move(name), std::move(defaultValue), flags, ValidateAlwaysTrue) { }
+
 	CVar::CVar(const std::string& name, const std::string& defaultValue, const int flags,
 	           const ValidateCallback& validate) :
 	m_sName(name), m_sValue(defaultValue), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
@@ -70,6 +76,34 @@ namespace gctk {
 	           const ValidateCallback& validate) :
 	m_sName(name), m_sValue(std::move(defaultValue)), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
 	m_fnValidate(validate), m_pNext(nullptr) {
+		if (FindCVar(m_sName) != nullptr) {
+			throw std::runtime_error("CVar \"" + m_sName + "\" already exists");
+		}
+
+		if (CVar* last = GetLastCvar(); last == nullptr) {
+			s_cvars = this;
+		} else {
+			last->m_pNext = this;
+		}
+	}
+
+	CVar::CVar(std::string&& name, std::string&& defaultValue, const int flags, const ValidateCallback& validate) :
+		m_sName(std::move(name)), m_sValue(std::move(defaultValue)), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
+		m_fnValidate(validate), m_pNext(nullptr) {
+		if (FindCVar(m_sName) != nullptr) {
+			throw std::runtime_error("CVar \"" + m_sName + "\" already exists");
+		}
+
+		if (CVar* last = GetLastCvar(); last == nullptr) {
+			s_cvars = this;
+		} else {
+			last->m_pNext = this;
+		}
+	}
+
+	CVar::CVar(std::string&& name, std::string&& defaultValue, int flags, ValidateCallback&& validate) :
+		m_sName(std::move(name)), m_sValue(std::move(defaultValue)), m_eFlags(flags | CVAR_DEFAULT_FLAGS), m_fnCallback(nullptr),
+		m_fnValidate(std::move(validate)), m_pNext(nullptr) {
 		if (FindCVar(m_sName) != nullptr) {
 			throw std::runtime_error("CVar \"" + m_sName + "\" already exists");
 		}
@@ -303,6 +337,11 @@ namespace gctk {
 			}
 		}
 
+		if (!temp.empty()) {
+			args.push_back(temp);
+			temp.clear();
+		}
+
 		if (CVar::FindCVar(name) == nullptr) {
 			return false;
 		}
@@ -312,7 +351,7 @@ namespace gctk {
 			try {
 				return cvar->call(args);
 			} catch (const EngineErrorException& error) {
-				Log(error.message(), MessageLevel::Error, error.caller_filename(), error.caller_line());
+				Log(error.what(), MessageLevel::Error, error.caller_filename(), error.caller_line());
 				return false;
 			}
 		}

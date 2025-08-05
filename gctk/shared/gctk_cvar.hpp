@@ -39,8 +39,12 @@ namespace gctk {
 	public:
 		CVar(const std::string& name, const std::string& defaultValue, int flags);
 		CVar(const std::string& name, std::string&& defaultValue, int flags);
+		CVar(std::string&& name, const std::string& defaultValue, int flags);
+		CVar(std::string&& name, std::string&& defaultValue, int flags);
 		CVar(const std::string& name, const std::string& defaultValue, int flags, const ValidateCallback& validate);
 		CVar(const std::string& name, std::string&& defaultValue, int flags, const ValidateCallback& validate);
+		CVar(std::string&& name, std::string&& defaultValue, int flags, const ValidateCallback& validate);
+		CVar(std::string&& name, std::string&& defaultValue, int flags, ValidateCallback&& validate);
 		CVar(const std::string& name, const Callable& callable, int flags);
 
 		bool set_value(bool value);

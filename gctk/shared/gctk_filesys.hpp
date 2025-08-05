@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <thread>
 
 namespace gctk {
 	using Path = std::filesystem::path;
@@ -16,3 +17,11 @@ namespace gctk {
 		using namespace std::filesystem;
 	}
 }
+
+template<>
+struct std::formatter<std::filesystem::path> : public std::formatter<std::string> {
+	template<class FmtContext>
+	typename FmtContext::iterator format(const std::filesystem::path& path, FmtContext& ctx) const {
+		return std::formatter<std::string>::format(path.string(), ctx);
+	}
+};
