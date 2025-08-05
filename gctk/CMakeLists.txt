@@ -6,6 +6,7 @@ find_package(GLEW REQUIRED)
 
 set(GCTK_VERSION_MAJOR 1)
 set(GCTK_VERSION_MINOR 0)
+set(GCTK_VERSION_PATCH 0)
 set(GCTK_VERSION_RELEASE Alpha)
 
 function(add_gctk_library TARGET)
@@ -27,13 +28,24 @@ add_library(gctk_server STATIC ${GCTK_SERVER_SOURCES} ${GCTK_SHARED_SOURCES})
 target_include_directories(gctk_server PUBLIC ${CMAKE_CURRENT_LIST_DIR}/server ${CMAKE_CURRENT_LIST_DIR}/shared ${CMAKE_CURRENT_LIST_DIR}/thirdparty)
 target_compile_definitions(gctk_server PUBLIC GCTK_SERVER)
 
-add_compile_definitions(
+target_compile_definitions(
+    gctk_client PUBLIC
     -DGCTK_OS_NAME="${CMAKE_SYSTEM_NAME}"
     -DGCTK_ARCH_NAME="${CMAKE_SYSTEM_PROCESSOR}"
     -DGCTK_VERSION_MAJOR=${GCTK_VERSION_MAJOR}
     -DGCTK_VERSION_MINOR=${GCTK_VERSION_MINOR}
+    -DGCTK_VERSION_PATCH=${GCTK_VERSION_PATCH}
     -DGCTK_VERSION_RELEASE="${GCTK_VERSION_RELEASE}"
-    -DGCTK_VERSION_STRING="${GCTK_VERSION_MAJOR}.${GCTK_VERSION_MINOR}${GCTK_VERSION_RELEASE}"
+    -DGCTK_VERSION_STRING="${GCTK_VERSION_MAJOR}.${GCTK_VERSION_MINOR}.${GCTK_VERSION_PATCH} ${GCTK_VERSION_RELEASE}"
+)
+target_compile_definitions(
+    gctk_server PUBLIC
+    -DGCTK_OS_NAME="${CMAKE_SYSTEM_NAME}"
+    -DGCTK_ARCH_NAME="${CMAKE_SYSTEM_PROCESSOR}"
+    -DGCTK_VERSION_MAJOR=${GCTK_VERSION_MAJOR}
+    -DGCTK_VERSION_MINOR=${GCTK_VERSION_MINOR}
+    -DGCTK_VERSION_PATCH=${GCTK_VERSION_PATCH}
+    -DGCTK_VERSION_RELEASE="${GCTK_VERSION_RELEASE}"
 )
 
 add_library(gctk::client ALIAS gctk_client)
@@ -59,6 +71,7 @@ function(add_gctk_server TARGET GAME_OUTPUT_DIRECTORY)
 endfunction()
 function(add_gctk_launcher TARGET GAME_OUTPUT_DIRECTORY)
     add_executable(${TARGET} ${ARGN})
+    target_include_directories(${TARGET} PUBLIC ${GCTK_ROOT_DIRECTORY}/launcher)
     target_link_libraries(${TARGET} PRIVATE gctk::client ${TARGET}_client)
     target_compile_definitions(${TARGET} PRIVATE -DGCTK_GAME_NAME="${TARGET}")
     set_target_properties(${TARGET} PROPERTIES
@@ -67,6 +80,7 @@ function(add_gctk_launcher TARGET GAME_OUTPUT_DIRECTORY)
 endfunction()
 function(add_gctk_launcher_singleplayer TARGET GAME_OUTPUT_DIRECTORY)
     add_executable(${TARGET} ${ARGN})
+    target_include_directories(${TARGET} PUBLIC ${GCTK_ROOT_DIRECTORY}/launcher)
     target_link_libraries(${TARGET} PRIVATE gctk::client ${TARGET}_client)
     target_compile_definitions(${TARGET} PRIVATE -DGCTK_GAME_NAME="${TARGET}" -DGCTK_SINGLEPLAYER)
     set_target_properties(${TARGET} PROPERTIES
