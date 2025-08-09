@@ -12,7 +12,6 @@
 #define GPKG_VERSION_MAJOR 0
 #define GPKG_VERSION_MINOR 1
 
-constexpr std::string_view GPKG_VERSION = "1.0";
 constexpr uint8_t GPKG_IDENTIFIER[] = { 'G', 'P', 'K', 'G' };
 
 int main(int argc, char** argv) {
@@ -22,12 +21,13 @@ int main(int argc, char** argv) {
 	}
 	if (argc == 2) {
 		if (strcasecmp(argv[1], "--help") == 0 || strcasecmp(argv[1], "-h") == 0) {
-			std::println("GPkg v{}.{}", GPKG_VERSION, GPKG_VERSION_MAJOR, GPKG_VERSION_MINOR);
+			std::println("GPkg v{}.{}", GPKG_VERSION_MAJOR, GPKG_VERSION_MINOR);
 			std::println(
 				"Usage:\n"
 				"gpkg --help|-h    ==> Show help message\n"
 				"gpkg --version|-v ==> Show tool version\n"
 				"gpkg --input <path> --output <path> <flags> ==> Create archive from input directory and save it to specific output path\n"
+				"gpkg --output <path> --input <path> <flags> ==> Create archive from input directory and save it to specific output path\n"
 				"Additional flags:\n<No additional flags implemented yet>"
 				// "-v|--version <major>.<minor> ==> Specify archive version\n"
 				// "-c|--compress                ==> Compress archive"
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 			return 0;
 		}
 		if (strcasecmp(argv[1], "--version") == 0 || strcasecmp(argv[1], "-v") == 0) {
-			std::println("GPkg v{}.{}", GPKG_VERSION, GPKG_VERSION_MAJOR, GPKG_VERSION_MINOR);
+			std::println("GPkg v{}.{}", GPKG_VERSION_MAJOR, GPKG_VERSION_MINOR);
 			return 0;
 		}
 
@@ -58,15 +58,22 @@ int main(int argc, char** argv) {
 	std::filesystem::path input_path;
 	std::filesystem::path output_path;
 
-	if (strcasecmp(argv[1], "--input") == 0 || strcasecmp(argv[1], "-i") == 0) {
-		input_path = argv[2];
-		if (strcasecmp(argv[3], "--output") == 0 || strcasecmp(argv[3], "-o") == 0) {
-			output_path = argv[4];
-		}
-	} else if (strcasecmp(argv[1], "--output") == 0 || strcasecmp(argv[1], "-o") == 0) {
-		output_path = argv[2];
-		if (strcasecmp(argv[3], "--input") == 0 || strcasecmp(argv[3], "-i") == 0) {
-			input_path = argv[4];
+	for (int i = 1; i < argc; i += 2) {
+		if (strcasecmp(argv[i], "--input") == 0 || strcasecmp(argv[i], "-i") == 0) {
+			if (!input_path.empty()) {
+				std::println("Duplicate input path");
+				return 1;
+			}
+			input_path = argv[i + 1];
+		} else if (strcasecmp(argv[i], "--output") == 0 || strcasecmp(argv[i], "-o") == 0) {
+			if (!input_path.empty()) {
+				std::println("Duplicate output path");
+				return 1;
+			}
+			output_path = argv[i + 1];
+		} else {
+			std::println("Invalid argument: {}", argv[i]);
+			return 1;
 		}
 	}
 

@@ -21,11 +21,21 @@ file(GLOB_RECURSE GCTK_SERVER_SOURCES ${CMAKE_CURRENT_LIST_DIR}/server/*.hpp ${C
 
 add_library(gctk_client STATIC ${GCTK_CLIENT_SOURCES} ${GCTK_SHARED_SOURCES})
 target_link_libraries(gctk_client PUBLIC OpenGL::GL GLEW::GLEW glfw)
-target_include_directories(gctk_client PUBLIC ${CMAKE_CURRENT_LIST_DIR}/client ${CMAKE_CURRENT_LIST_DIR}/shared ${CMAKE_CURRENT_LIST_DIR}/thirdparty)
+target_include_directories(gctk_client PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/client
+        ${CMAKE_CURRENT_LIST_DIR}/shared
+        ${CMAKE_CURRENT_LIST_DIR}/thirdparty
+        ${CMAKE_CURRENT_LIST_DIR}/../submodules/tini/src
+)
 target_compile_definitions(gctk_client PUBLIC GCTK_CLIENT)
 
 add_library(gctk_server STATIC ${GCTK_SERVER_SOURCES} ${GCTK_SHARED_SOURCES})
-target_include_directories(gctk_server PUBLIC ${CMAKE_CURRENT_LIST_DIR}/server ${CMAKE_CURRENT_LIST_DIR}/shared ${CMAKE_CURRENT_LIST_DIR}/thirdparty)
+target_include_directories(gctk_server PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/server
+        ${CMAKE_CURRENT_LIST_DIR}/shared
+        ${CMAKE_CURRENT_LIST_DIR}/thirdparty
+        ${CMAKE_CURRENT_LIST_DIR}/../submodules/tini/src
+)
 target_compile_definitions(gctk_server PUBLIC GCTK_SERVER)
 
 target_compile_definitions(

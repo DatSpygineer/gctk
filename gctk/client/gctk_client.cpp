@@ -5,6 +5,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "tini.hpp"
+
 namespace gctk {
 	static bool UpdateWindowSize(const CVar* self, const std::string& value);
 	static bool UpdateWindowState(const CVar* self, const std::string& value);
@@ -39,9 +41,16 @@ namespace gctk {
 		Console::StoreUserData();
 		Input::SaveInputs();
 
+		glfwSetWindowIcon(m_pWindow, 0, nullptr);
+		glfwSetCursor(m_pWindow, nullptr);
+
 		if (m_pIconImage != nullptr && m_pIconImage->pixels != nullptr) {
 			stbi_image_free(m_pIconImage->pixels);
 			delete m_pIconImage;
+		}
+		if (m_pCursorImage != nullptr && m_pCursorImage->pixels != nullptr) {
+			stbi_image_free(m_pCursorImage->pixels);
+			delete m_pCursorImage;
 		}
 
 		if (m_pWindow != nullptr) {
@@ -66,7 +75,7 @@ namespace gctk {
 		if (glfwInit() == GLFW_FALSE) {
 			const char* errmsg;
 			const int errcode = glfwGetError(&errmsg);
-			FatalError(std::format("Failed to initialize GLFW:\n{} (error code {})", errmsg, errcode));
+			FatalError("Failed to initialize GLFW:\n{} (error code {})", errmsg, errcode);
 		}
 		m_bGlfwInitialized = true;
 
@@ -97,15 +106,15 @@ namespace gctk {
 		if (m_pWindow == nullptr) {
 			const char* errmsg;
 			const int errcode = glfwGetError(&errmsg);
-			FatalError(std::format("Failed to create window: \n{} (error code {})", errmsg, errcode));
+			FatalError("Failed to create window: \n{} (error code {})", errmsg, errcode);
 		}
 		glfwMakeContextCurrent(m_pWindow);
 
 		if (auto glew_error = glewInit(); glew_error != GLEW_OK) {
-			FatalError(std::format("Failed to initialize OpenGL: {} (error code {})",
+			FatalError("Failed to initialize OpenGL: {} (error code {})",
 				reinterpret_cast<const char*>(glewGetErrorString(glew_error)),
 				glew_error
-			));
+			);
 		}
 
 #ifndef NDEBUG
@@ -122,12 +131,12 @@ namespace gctk {
 				m_pIconImage->height = icon_y;
 				m_pIconImage->pixels = icon_data;
 				glfwSetWindowIcon(m_pWindow, 1, m_pIconImage);
-				LogInfo(std::format("Loaded icon \"{}\"", (Paths::ResourcePath() / "game_icon.png")));
+				LogInfo("Loaded icon \"{}\"", (Paths::ResourcePath() / "game_icon.png"));
 			} else {
-				LogErr(std::format("Failed to load window icon \"{}\"", (Paths::ResourcePath() / "game_icon.png")));
+				LogErr("Failed to load window icon \"{}\"", (Paths::ResourcePath() / "game_icon.png"));
 			}
 		} else {
-			LogWarn(std::format("Window icon \"{}\" cannot be found!", (Paths::ResourcePath() / "game_icon.png")));
+			LogWarn("Window icon \"{}\" cannot be found!", (Paths::ResourcePath() / "game_icon.png"));
 		}
 
 		Input::Initialize(*this);
@@ -238,6 +247,75 @@ namespace gctk {
 		return glfwGetWindowMonitor(m_pWindow);
 	}
 
+	void Client::set_cursor(const std::string& cursor_name) {
+		int cursor_w, cursor_h;
+		int xhot = 0, yhot = 0;
+		Path image_path;
+		const auto cursor_path = Paths::ResourcePath() / "cursors" / (cursor_name + ".gcur");
+
+		if (Paths::exists(cursor_path)) {
+			IniDocument doc;
+			try {
+				doc = IniDocument::Parse(cursor_path);
+			} catch (const std::exception& e) {
+				LogErr("Failed to parse file \"{}\": {}", cursor_path, e.what());
+				return;
+			}
+
+			if (!doc.contains_group("Cursor") || !doc.contains_group("")) {
+				LogErr("Failed to parse file \"{}\": Expected group \"Cursor\"", cursor_path);
+				return;
+			}
+			auto group = doc.contains_group("Cursor") ? doc["Cursor"] : doc[""];
+			if (!group.contains("image")) {
+				LogErr("Expected keyword \"image\" in file {}", cursor_path);
+				return;
+			}
+
+			image_path = Paths::ResourcePath() / "cursors" / group["image"];
+
+			if (group.contains("hotspot")) {
+				if (std::vector<int> hotspot_items; !StringUtil::ParseVector<int>(group["hotspot"], 2, hotspot_items)) {
+					LogErr("Failed to parse value \"hotspot\" to integer vector");
+				} else {
+					xhot = hotspot_items.at(0);
+					yhot = hotspot_items.at(1);
+				}
+			}
+		} else {
+			image_path = Paths::ResourcePath() / "cursors" / (cursor_name + ".png");
+		}
+
+		const auto cursor_data = stbi_load(
+			image_path.string().c_str(),
+			&cursor_w, &cursor_h, nullptr, 4
+		);
+
+		if (cursor_data != nullptr) {
+			if (m_pCursorImage != nullptr) {
+				stbi_image_free(m_pCursorImage->pixels);
+			} else {
+				m_pCursorImage = new GLFWimage;
+			}
+			m_pCursorImage->width = cursor_w;
+			m_pCursorImage->height = cursor_h;
+			m_pCursorImage->pixels = cursor_data;
+
+			GLFWcursor* cur = glfwCreateCursor(m_pCursorImage, xhot, yhot);
+			glfwSetCursor(m_pWindow, cur);
+		} else {
+			LogErr("Failed to load cursor \"{}\" from file \"{}\"", cursor_name, image_path);
+		}
+	}
+	void Client::reset_cursor() {
+		if (m_pCursorImage != nullptr) {
+			stbi_image_free(m_pCursorImage->pixels);
+			delete m_pCursorImage;
+			m_pCursorImage = nullptr;
+		}
+		glfwSetCursor(m_pWindow, nullptr);
+	}
+
 	void Client::set_background_color(const Color& color) {
 		m_cBackgroundColor = color;
 	}
@@ -259,10 +337,10 @@ namespace gctk {
 			if (s_client_instance != nullptr) {
 				auto [ w, h ] = s_client_instance->get_window_size();
 				if (self->name() == "vid_window_x") {
-					s_client_instance->set_window_size(size, h);
+					s_client_instance->set_window_size(static_cast<int>(size), h);
 				}
 				if (self->name() == "vid_window_y") {
-					s_client_instance->set_window_size(w, size);
+					s_client_instance->set_window_size(w, static_cast<int>(size));
 				}
 			}
 			return true;

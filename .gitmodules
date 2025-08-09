@@ -1,3 +1,9 @@
 [submodule "submodules/lua"]
 	path = submodules/lua
 	url = https://github.com/walterschell/Lua.git
+[submodule "submodules/imgui"]
+	path = submodules/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "submodules/tini"]
+	path = submodules/tini
+	url = https://github.com/DatSpygineer/tini.git

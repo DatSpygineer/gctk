@@ -13,3 +13,6 @@ example/game/bin
 example/game/logs
 example/game/cfg/keybinds.cfg
 example/game/cfg/userdata.cfg
+
+# Ignore compiled assets
+example/game/assets.gpkg

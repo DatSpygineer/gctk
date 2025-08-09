@@ -1135,7 +1135,10 @@ namespace gctk {
 			return std::make_tuple(h, s, l, a);
 		}
 
-		[[nodiscard]] static constexpr Color FromRgba(const uint32_t rgba) {
+		[[nodiscard]] static constexpr Color FromRgba(uint32_t rgba) {
+			if (rgba <= 0xFFFFFF) {
+				rgba = (rgba << 8) | 0xFF;
+			}
 			return FromRgba((rgba >> 24) & 0xFF, (rgba >> 16) & 0xFF, (rgba >> 8) & 0xFF, rgba & 0xFF);
 		}
 		[[nodiscard]] static constexpr Color FromRgba(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a = 0xFF) {

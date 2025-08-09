@@ -72,4 +72,137 @@ namespace gctk::StringUtil {
 		}
 		return oss.str();
 	}
+
+	bool ParseBool(const std::string& str, bool& out) {
+		const auto str_lc = ToLower(str);
+		if (str_lc == "true" || str_lc == "on" || str_lc == "yes") {
+			out = true;
+			return true;
+		}
+		if (str_lc == "false" || str_lc == "off" || str_lc == "no") {
+			out = false;
+			return true;
+		}
+
+		if (uint8_t value; ParseInt<uint8_t>(str_lc, value)) {
+			out = value != 0;
+			return true;
+		}
+		return false;
+	}
+
+	bool ParseVector2(const std::string& str, Vector2& out) {
+		const auto tokens = Split(str, ' ');
+		if (tokens.size() != 2) {
+			return false;
+		}
+		return ParseFloat(tokens.at(0), out.x) && ParseFloat(tokens.at(1), out.y);
+	}
+	bool ParseVector3(const std::string& str, Vector3& out) {
+		const auto tokens = Split(str, ' ');
+		if (tokens.size() != 3) {
+			return false;
+		}
+		return ParseFloat(tokens.at(0), out.x) && ParseFloat(tokens.at(1), out.y) &&
+			   ParseFloat(tokens.at(2), out.z);
+	}
+	bool ParseVector4(const std::string& str, Vector4& out) {
+		const auto tokens = Split(str, ' ');
+		if (tokens.size() != 4) {
+			return false;
+		}
+		return ParseFloat(tokens.at(0), out.x) && ParseFloat(tokens.at(1), out.y) &&
+			   ParseFloat(tokens.at(2), out.z) && ParseFloat(tokens.at(3), out.w);
+	}
+	bool ParseColor(const std::string& str, Color& out) {
+		auto str_t = Trim(str);
+		if (str_t.starts_with("rgb")) {
+			const auto components = str_t.starts_with("rgba") ? 4 : 3;
+			const auto values = Trim(str_t.substr(components), "()");
+			const auto tokens = Split(values, ',');
+			if (tokens.size() != components) {
+				return false;
+			}
+
+			uint8_t r, g, b;
+			float a;
+			if (ParseInt<uint8_t>(tokens.at(0), r) && ParseInt<uint8_t>(tokens.at(1), g) &&
+				ParseInt<uint8_t>(tokens.at(2), b)) {
+				if (components == 3) {
+					a = 1.0f;
+				} else {
+					if (!ParseFloat<float>(tokens.at(3), a)) {
+						return false;
+					}
+				}
+
+				out = Color::FromRgba(r, g, b);
+				out.a = a;
+				return true;
+			}
+			return false;
+		}
+		if (str_t.starts_with("hsl")) {
+			const auto components = str_t.starts_with("hsla") ? 4 : 3;
+			const auto values = Trim(str_t.substr(components), "()");
+			const auto tokens = Split(values, ',');
+			if (tokens.size() != components) {
+				return false;
+			}
+
+			float h, s, l, a;
+			if (ParseFloat(tokens.at(0), h) && ParseFloat(tokens.at(1), s) && ParseFloat(tokens.at(2), l)) {
+				if (components == 3) {
+					a = 1.0f;
+				} else {
+					if (!ParseFloat<float>(tokens.at(3), a)) {
+						return false;
+					}
+				}
+
+				out = Color::FromHsl(h, s, l, a);
+				return true;
+			}
+			return false;
+		}
+		if (str_t.starts_with('#')) {
+			uint32_t rgba;
+			if (!ParseInt(str_t, rgba)) {
+				return false;
+			}
+			out = Color::FromRgba(rgba);
+			return true;
+		}
+		return false;
+	}
+	bool ParseMatrix4(const std::string& str, Matrix4& out) {
+		const auto tokens = Split(str, ' ');
+		if (tokens.size() != 16) {
+			return false;
+		}
+
+		for (int i = 0; i < 16; i++) {
+			if (!ParseFloat(tokens.at(i), out.item(i))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool ParseVector(const std::string& str, uint8_t item_count, std::vector<bool>& out) {
+		std::string str_t = Trim(str);
+		const auto items = Split(str, ' ');
+		if (items.size() != item_count) {
+			return false;
+		}
+		out.reserve(item_count);
+		for (int i = 0; i < item_count; i++) {
+			bool value;
+			if (!ParseBool(items.at(i), value)) {
+				return false;
+			}
+			out.push_back(value);
+		}
+		return true;
+	}
 }

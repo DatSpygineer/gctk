@@ -45,9 +45,9 @@ inline int GctkLauncherMain(int argc, char** argv) {
 
 	const gctk::DLL client_dll(gctk::Paths::GameBinaryPath() / CLIENT_DLL_NAME);
 	if (!client_dll) {
-		LogErrAndPopup(std::format("Failed to load library \"{}\"",
-			gctk::Paths::GameBinaryPath() / CLIENT_DLL_NAME)
-			);
+		LogErrAndPopup("Failed to load library \"{}\"",
+			gctk::Paths::GameBinaryPath() / CLIENT_DLL_NAME
+		);
 #ifdef _WIN32
 		for (auto& arg : argv) {
 			delete[] arg;
@@ -65,9 +65,9 @@ inline int GctkLauncherMain(int argc, char** argv) {
 #ifdef GCTK_SINGLEPLAYER
 	const gctk::DLL server_dll(gctk::Paths::GameBinaryPath() / SERVER_DLL_NAME);
 	if (!server_dll) {
-		LogErrAndPopup(std::format("Failed to load library \"{}\"",
-			gctk::Paths::GameBinaryPath() / SERVER_DLL_NAME)
-			);
+		LogErrAndPopup("Failed to load library \"{}\"",
+			gctk::Paths::GameBinaryPath() / SERVER_DLL_NAME
+		);
 #ifdef _WIN32
 		for (auto& arg : argv) {
 			delete[] arg;
@@ -82,19 +82,19 @@ inline int GctkLauncherMain(int argc, char** argv) {
 #endif
 
 	if (client_start == nullptr) {
-		LogErrAndPopup(std::format("Could not load symbol \"ClientStartup\" from library \"{}\"", CLIENT_DLL_NAME));
+		LogErrAndPopup("Could not load symbol \"ClientStartup\" from library \"{}\"", CLIENT_DLL_NAME);
 		exit_code = 1;
 		goto __GCTK_LAUNCHER_EXIT;
 	}
 
 #ifdef GCTK_SINGLEPLAYER
 	if (server_start == nullptr) {
-		LogErrAndPopup(std::format("Could not load symbol \"ServerStartup\" from library \"{}\"", SERVER_DLL_NAME));
+		LogErrAndPopup("Could not load symbol \"ServerStartup\" from library \"{}\"", SERVER_DLL_NAME);
 		exit_code = 1;
 		goto __GCTK_LAUNCHER_EXIT;
 	}
 	if (server_heartbeat == nullptr) {
-		LogErrAndPopup(std::format("Could not load symbol \"ServerHeartbeat\" from library \"{}\"", SERVER_DLL_NAME));
+		LogErrAndPopup("Could not load symbol \"ServerHeartbeat\" from library \"{}\"", SERVER_DLL_NAME);
 		exit_code = 1;
 		goto __GCTK_LAUNCHER_EXIT;
 	}
@@ -127,7 +127,7 @@ inline int GctkLauncherMain(int argc, char** argv) {
 			client_shutdown();
 		}
 	} catch (const std::exception& ex) {
-		LogErrAndPopup(std::format("Runtime error: Exception thrown \"{}\"", ex.what()));
+		LogErrAndPopup("Runtime error: Exception thrown \"{}\"", ex.what());
 		exit_code = 1;
 	}
 

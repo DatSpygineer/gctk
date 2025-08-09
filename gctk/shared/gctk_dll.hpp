@@ -50,7 +50,7 @@ namespace gctk {
 			result = reinterpret_cast<T>(dlsym(m_pModule, name_cstr));
 #endif
 			if (result == nullptr) {
-				LogErr(std::format("Failed to load symbol \"{}\" from DLL \"{}\"", name_cstr, m_sPath));
+				LogErr("Failed to load symbol \"{}\" from DLL \"{}\"", name_cstr, m_sPath);
 			}
 			return result;
 		}

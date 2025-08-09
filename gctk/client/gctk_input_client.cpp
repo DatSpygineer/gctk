@@ -19,11 +19,11 @@
 
 namespace gctk {
 	CONCOMMAND(bind, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 2, std::format("Expected 2 arguments, got {}", args.size()));
+		AssertThrow(args.size() == 2, "Expected 2 arguments, got {}", args.size());
 		Input::CreateAction(args.at(0), args.at(1));
 	}
 	CONCOMMAND(bind_axis, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 3, std::format("Expected 3 arguments, got {}", args.size()));
+		AssertThrow(args.size() == 3, "Expected 3 arguments, got {}", args.size());
 		Input::CreateAxis(args.at(0), args.at(1), args.at(2));
 	}
 
@@ -270,11 +270,11 @@ namespace gctk {
 		const int pos = StringToKeycode(positive_key);
 
 		if (neg == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Failed to set input axis \"{}\": Negative key \"{}\" is invalid!", name, negative_key));
+			LogErr("Failed to set input axis \"{}\": Negative key \"{}\" is invalid!", name, negative_key);
 			return;
 		}
 		if (pos == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Failed to set input axis \"{}\": Positive key \"{}\" is invalid!", name, positive_key));
+			LogErr("Failed to set input axis \"{}\": Positive key \"{}\" is invalid!", name, positive_key);
 			return;
 		}
 
@@ -294,7 +294,7 @@ namespace gctk {
 	void Input::CreateAction(const std::string& name, const std::string& key) {
 		const int code = StringToKeycode(key);
 		if (code == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Failed to set input action \"{}\": Keycode \"{}\" is invalid!", name, key));
+			LogErr("Failed to set input action \"{}\": Keycode \"{}\" is invalid!", name, key);
 			return;
 		}
 
@@ -311,18 +311,18 @@ namespace gctk {
 
 	bool Input::ActionPressed(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return false;
 		}
 		const auto keycode = s_actions.at(name);
 		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input action \"{}\" has no valid keycode assigned!", name));
+			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
 			return false;
 		}
 
 		if (!s_key_state.contains(keycode)) {
 			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn(std::format("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode)));
+			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
 			return false;
 		}
 
@@ -335,18 +335,18 @@ namespace gctk {
 
 	bool Input::ActionDown(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return false;
 		}
 		const auto keycode = s_actions.at(name);
 		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input action \"{}\" has no valid keycode assigned!", name));
+			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
 			return false;
 		}
 
 		if (!s_key_state.contains(keycode)) {
 			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn(std::format("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode)));
+			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
 			return false;
 		}
 
@@ -354,18 +354,18 @@ namespace gctk {
 	}
 	bool Input::ActionReleased(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return false;
 		}
 		const auto keycode = s_actions.at(name);
 		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input action \"{}\" has no valid keycode assigned!", name));
+			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
 			return false;
 		}
 
 		if (!s_key_state.contains(keycode)) {
 			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn(std::format("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode)));
+			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
 			return false;
 		}
 
@@ -378,18 +378,18 @@ namespace gctk {
 
 	bool Input::ActionUp(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return false;
 		}
 		const auto keycode = s_actions.at(name);
 		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input action \"{}\" has no valid keycode assigned!", name));
+			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
 			return false;
 		}
 
 		if (!s_key_state.contains(keycode)) {
 			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn(std::format("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode)));
+			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
 			return false;
 		}
 
@@ -397,16 +397,16 @@ namespace gctk {
 	}
 	float Input::AxisValue(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return false;
 		}
 		const auto [ neg, pos ] = s_axis.at(name);
 		if (neg == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input axis \"{}\" has no valid negative keycode assigned!", name));
+			LogErr("Input axis \"{}\" has no valid negative keycode assigned!", name);
 			return false;
 		}
 		if (pos == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input axis \"{}\" has no valid positive keycode assigned!", name));
+			LogErr("Input axis \"{}\" has no valid positive keycode assigned!", name);
 			return false;
 		}
 
@@ -414,11 +414,11 @@ namespace gctk {
 		const auto neg_val = GetKeyAsFloat(neg);
 
 		if (pos_val == NAN) {
-			LogErr(std::format("Could not get state of keycode \"{}\"", KeycodeToString(pos)));
+			LogErr("Could not get state of keycode \"{}\"", KeycodeToString(pos));
 			return 0;
 		}
 		if (neg_val == NAN) {
-			LogErr(std::format("Could not get state of keycode \"{}\"", KeycodeToString(neg)));
+			LogErr("Could not get state of keycode \"{}\"", KeycodeToString(neg));
 			return 0;
 		}
 
@@ -433,12 +433,12 @@ namespace gctk {
 
 	Input::KeyState Input::GetKeyState(const std::string& name) {
 		if (!s_actions.contains(name)) {
-			LogErr(std::format("Input action \"{}\" doesn't exists!", name));
+			LogErr("Input action \"{}\" doesn't exists!", name);
 			return KeyState::Invalid;
 		}
 		const auto keycode = s_actions.at(name);
 		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr(std::format("Input action \"{}\" has no valid keycode assigned!", name));
+			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
 			return KeyState::Invalid;
 		}
 		return s_key_state.at(keycode);
@@ -446,7 +446,7 @@ namespace gctk {
 
 	void Input::SetTargetController(const int index) {
 		if (index > GLFW_JOYSTICK_LAST) {
-			LogErr(std::format("Controller id {} is out of range! (Maximum device count is {})", index, GLFW_JOYSTICK_LAST));
+			LogErr("Controller id {} is out of range! (Maximum device count is {})", index, GLFW_JOYSTICK_LAST);
 			return;
 		}
 

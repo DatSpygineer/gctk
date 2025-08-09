@@ -17,14 +17,14 @@ namespace gctk {
 		uint8_t clamp_t : 1;
 	};
 	enum class TextureTarget {
-		Texture1D,
-		Texture1DArray,
-		Texture2D,
-		Texture2DArray,
-		Texture3D,
-		TextureCubeMap,
-		TextureCubeMapArray,
-		Reserved
+		Texture1D           = 0b000,
+		Texture1DArray      = 0b001,
+		Texture2D           = 0b010,
+		Texture2DArray      = 0b011,
+		Texture3D           = 0b100,
+		TextureCubeMap      = 0b101,
+		TextureCubeMapArray = 0b110,
+		Reserved            = 0b111
 	};
 	enum class TextureFormat {
 		Grayscale,
@@ -51,7 +51,7 @@ namespace gctk {
 		BC6Unsigned,
 		BC7UNorm,
 
-		BC7UNormSRgb,
+		BC7UNormSRgb
 	};
 
 	Texture::~Texture() {
@@ -83,7 +83,7 @@ namespace gctk {
 	bool Texture::load(const std::string& path) {
 		std::ifstream ifs(path, std::ios::binary); // TODO: Load file from an asset pack instead
 		if (!ifs.is_open()) {
-			LogErr(std::format("Could not load texture \"{}\": Failed to open file", path));
+			LogErr("Could not load texture \"{}\": Failed to open file", path);
 			glDeleteTextures(1, &m_uId);
 			m_uId = 0;
 			return false;
@@ -92,7 +92,7 @@ namespace gctk {
 		uint8_t identifier[4];
 		ifs.read(reinterpret_cast<char*>(identifier), 4);
 		if (memcmp(identifier, TEXTURE_IDENTIFIER, 4) != 0) {
-			LogErr(std::format("Could not load texture \"{}\": Invalid identifier", path));
+			LogErr("Could not load texture \"{}\": Invalid identifier", path);
 			glDeleteTextures(1, &m_uId);
 			m_uId = 0;
 			return false;
@@ -124,7 +124,7 @@ namespace gctk {
 			case TextureTarget::TextureCubeMap: target = GL_TEXTURE_CUBE_MAP; break;
 			case TextureTarget::TextureCubeMapArray: target = GL_TEXTURE_CUBE_MAP_ARRAY; break;
 			default: {
-				LogErr(std::format("Could not load texture \"{}\": Invalid texture target", path));
+				LogErr("Could not load texture \"{}\": Invalid texture target", path);
 				glDeleteTextures(1, &m_uId);
 				m_uId = 0;
 				return false;
@@ -132,7 +132,7 @@ namespace gctk {
 		}
 
 		if (target != m_uTarget) {
-			LogErr(std::format("Could not load texture \"{}\": Unexpected target", path));
+			LogErr("Could not load texture \"{}\": Unexpected target", path);
 			glDeleteTextures(1, &m_uId);
 			m_uId = 0;
 			return false;
@@ -228,7 +228,7 @@ namespace gctk {
 			} break;
 
 			default: {
-				LogErr(std::format("Could not load texture \"{}\": Invalid texture format", path));
+				LogErr("Could not load texture \"{}\": Invalid texture format", path);
 				glDeleteTextures(1, &m_uId);
 				m_uId = 0;
 				return false;

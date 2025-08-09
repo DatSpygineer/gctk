@@ -114,9 +114,9 @@ namespace gctk {
 
 			s_no_filelog = true; // Set to avoid infinite recursive calls
 			if (!s_logfile.is_open()) {
-				LogWarn(std::format("Failed to open log file \"{}\"", path.string()));
+				LogWarn("Failed to open log file \"{}\"", path);
 			} else {
-				LogInfo(std::format("Opened log file \"{}\"", path.string()));
+				LogInfo("Opened log file \"{}\"", path);
 				s_logfile << "================ GCTk v" << EngineVersion << " ================" << std::endl;
 			}
 			s_no_filelog = false;

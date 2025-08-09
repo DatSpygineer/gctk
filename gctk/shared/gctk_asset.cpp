@@ -59,7 +59,7 @@ namespace gctk {
 				}
 #endif
 				else {
-					LogErr(std::format("Cannot load asset \"{}\". Asset extension \"{}\" is not supported!", path, ext));
+					LogErr("Cannot load asset \"{}\". Asset extension \"{}\" is not supported!", path, ext);
 					return nullptr;
 				}
 
@@ -91,31 +91,31 @@ namespace gctk {
 	AssetPackRef AssetPack::Open(const std::string& path) {
 		FILE* f = fopen(path.c_str(), "rb");
 		if (f == nullptr) {
-			LogErr(std::format("Failed to open asset pack \"{}\"", path));
+			LogErr("Failed to open asset pack \"{}\"", path);
 			return nullptr;
 		}
 
 		uint32_t identifier;
 		if (fread(&identifier, sizeof(uint32_t), 1, f) <= 0) {
-			LogErr(std::format("Failed to read identifier of asset pack \"{}\"", path));
+			LogErr("Failed to read identifier of asset pack \"{}\"", path);
 			fclose(f);
 			return nullptr;
 		}
 
 		if (memcmp(&identifier, s_pack_identifier, 4) != 0 && memcmp(&identifier, s_pack_identifier_mirrored, 4) != 0) {
-			LogErr(std::format("Failed to load asset pack \"{}\": Identifier is invalid", path));
+			LogErr("Failed to load asset pack \"{}\": Identifier is invalid", path);
 			fclose(f);
 			return nullptr;
 		}
 
 		uint8_t major, minor;
 		if (fread(&major, sizeof(uint8_t), 1, f) <= 0) {
-			LogErr(std::format("Failed to read version of asset pack \"{}\"", path));
+			LogErr("Failed to read version of asset pack \"{}\"", path);
 			fclose(f);
 			return nullptr;
 		}
 		if (fread(&minor, sizeof(uint8_t), 1, f) <= 0) {
-			LogErr(std::format("Failed to read version of asset pack \"{}\"", path));
+			LogErr("Failed to read version of asset pack \"{}\"", path);
 			fclose(f);
 			return nullptr;
 		}
@@ -123,7 +123,7 @@ namespace gctk {
 		const Version version(major, minor);
 
 		if (version > CurrentVersion()) {
-			LogErr(std::format("Failed to load asset pack \"{}\": Unsupported archive version {}.{}", path, version.major, version.minor));
+			LogErr("Failed to load asset pack \"{}\": Unsupported archive version {}.{}", path, version.major, version.minor);
 			fclose(f);
 			return nullptr;
 		}
@@ -134,19 +134,19 @@ namespace gctk {
 
 		uint32_t data_origin = 0;
 		if (fread(&data_origin, sizeof(uint32_t), 1, f) <= 0) {
-			LogErr(std::format("Failed to read data origin of asset pack \"{}\"", path));
+			LogErr("Failed to read data origin of asset pack \"{}\"", path);
 			fclose(f);
 			return nullptr;
 		}
 		uint32_t entry_count;
 		if (fread(&entry_count, sizeof(uint32_t), 1, f) <= 0) {
-			LogErr(std::format("Failed to read entry count of asset pack \"{}\"", path));
+			LogErr("Failed to read entry count of asset pack \"{}\"", path);
 			fclose(f);
 			return nullptr;
 		}
 
 		if (entry_count == 0) {
-			LogErr(std::format("Failed to load asset pack \"{}\": Entry count must be greater then zero!", path));
+			LogErr("Failed to load asset pack \"{}\": Entry count must be greater then zero!", path);
 			fclose(f);
 			return nullptr;
 		}
@@ -168,7 +168,7 @@ namespace gctk {
 		}
 
 		if (const long i = ftell(f); data_origin < i) {
-			LogErr(std::format("Failed to load asset pack \"{}\": Data origin is out of range", path));
+			LogErr("Failed to load asset pack \"{}\": Data origin is out of range", path);
 			fclose(f);
 			return nullptr;
 		}
@@ -193,7 +193,7 @@ namespace gctk {
 			if (auto asset_pack = AssetPack::Open(path); asset_pack != nullptr) {
 				s_asset_packs.emplace_back(asset_pack);
 			} else {
-				FatalError(std::format("Failed to initialize asset pack \"{}\"", path));
+				FatalError("Failed to initialize asset pack \"{}\"", path);
 			}
 		}
 
@@ -204,7 +204,7 @@ namespace gctk {
 			while (std::getline(modlist_fs, name)) {
 				const auto path = s_mod_path.value() / name;
 				if (!Paths::exists(path)) {
-					LogErr(std::format("Failed to load mod pack \"{}\": File doesn't exists!", path));
+					LogErr("Failed to load mod pack \"{}\": File doesn't exists!", path);
 					continue;
 				}
 				if (auto asset_pack = AssetPack::Open(path); asset_pack != nullptr) {

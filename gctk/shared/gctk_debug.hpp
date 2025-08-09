@@ -46,23 +46,23 @@ namespace gctk {
 }
 
 #ifndef NDEBUG
-	#define LogInfo(__message) gctk::Log(__message, gctk::MessageLevel::Info,    __FILE__, __LINE__)
+	#define LogInfo(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Info,    __FILE__, __LINE__)
 #else
 	#define LogInfo(__message)
 #endif
 
-#define LogWarn(__message) gctk::Log(__message, gctk::MessageLevel::Warning, __FILE__, __LINE__)
-#define LogErr(__message) gctk::Log(__message, gctk::MessageLevel::Error,   __FILE__, __LINE__)
-#define LogErrAndPopup(__message) gctk::Log(__message, gctk::MessageLevel::Error,   __FILE__, __LINE__); gctk::ErrorPopup(__message)
-#define FatalError(__message) { LogErr(__message); gctk::DoCrash(__message); }
-#define LogErrThrow(__message) { throw gctk::EngineErrorException(__message, __FILE__, __LINE__); }
-#define Assert(__expression, __failure_message) \
-	if (!(__expression)) { AssertLog(#__expression, __failure_message, false, __FILE__, __LINE__); }
-#define AssertFatal(__expression, __failure_message) \
-	if (!(__expression)) { AssertLog(#__expression, __failure_message, true, __FILE__, __LINE__); }
-#define AssertThrow(__expression, __failure_message) \
+#define LogWarn(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Warning, __FILE__, __LINE__)
+#define LogErr(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Error,   __FILE__, __LINE__)
+#define LogErrAndPopup(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Error,   __FILE__, __LINE__); gctk::ErrorPopup(__message)
+#define FatalError(__message, ...) { LogErr(__message, ##__VA_ARGS__); gctk::DoCrash(std::format(__message, ##__VA_ARGS__)); }
+#define LogErrThrow(__message, ...) { throw gctk::EngineErrorException(std::format(__message, ##__VA_ARGS__), __FILE__, __LINE__); }
+#define Assert(__expression, __failure_message, ...) \
+	if (!(__expression)) { AssertLog(#__expression, std::format(__failure_message, ##__VA_ARGS__), false, __FILE__, __LINE__); }
+#define AssertFatal(__expression, __failure_message, ...) \
+	if (!(__expression)) { AssertLog(#__expression, std::format(__failure_message, ##__VA_ARGS__), true, __FILE__, __LINE__); }
+#define AssertThrow(__expression, __failure_message, ...) \
 	if (!(__expression)) { throw gctk::EngineErrorException(\
-			std::format("Assertion of expression \"{}\" has failed: {}", #__expression, __failure_message),\
+			std::format("Assertion of expression \"{}\" has failed: {}", #__expression, std::format(__failure_message, ##__VA_ARGS__)),\
 			__FILE__, __LINE__\
 		);\
 	}

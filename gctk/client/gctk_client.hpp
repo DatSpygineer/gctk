@@ -13,6 +13,7 @@ namespace gctk {
 		GLFWwindow* m_pWindow;
 		bool m_bGlfwInitialized;
 		GLFWimage* m_pIconImage;
+		GLFWimage* m_pCursorImage;
 		Color m_cBackgroundColor;
 		std::string m_sName;
 	public:
@@ -40,6 +41,9 @@ namespace gctk {
 		void set_window_monitor(int idx) const;
 		void set_window_monitor(GLFWmonitor* monitor) const;
 		[[nodiscard]] GLFWmonitor* get_window_monitor() const;
+
+		void set_cursor(const std::string& cursor_name);
+		void reset_cursor();
 
 		[[nodiscard]] constexpr GLFWwindow* get_window() const { return m_pWindow; }
 
