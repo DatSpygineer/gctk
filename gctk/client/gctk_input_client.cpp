@@ -9,32 +9,86 @@
 #include "gctk_filesys.hpp"
 #include "gctk_str.hpp"
 
-#define MOUSE_BUTTON_ORIGIN (GLFW_KEY_LAST + 1)
-#define GAMEPAD_BUTTONS_ORIGIN (MOUSE_BUTTON_ORIGIN + 2)
-
-#define MOUSE_WHEEL_ORIGIN  (GAMEPAD_BUTTONS_ORIGIN + GLFW_GAMEPAD_BUTTON_LAST + 1)
-#define MOUSE_MOTION_ORIGIN (MOUSE_WHEEL_ORIGIN + 2)
-
-#define GAMEPAD_AXIS_ORIGIN (MOUSE_MOTION_ORIGIN + 2)
-
 namespace gctk {
 	CONCOMMAND(bind, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 2, "Expected 2 arguments, got {}", args.size());
+		AssertThrow(args.size() >= 2, "Expected 2 or more arguments, got {}", args.size());
 		Input::CreateAction(args.at(0), args.at(1));
 	}
 	CONCOMMAND(bind_axis, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 3, "Expected 3 arguments, got {}", args.size());
+		AssertThrow(args.size() >= 3 && args.size() % 2 == 1, "Expected 3 or more arguments, got {}", args.size());
 		Input::CreateAxis(args.at(0), args.at(1), args.at(2));
 	}
+	CONCOMMAND(bindmult, CVAR_DEFAULT_FLAGS) {
+		AssertThrow(args.size() == 2, "Expected 2 arguments, got {}", args.size());
 
-	static std::unordered_map<std::string, int> s_actions;
-	static std::unordered_map<std::string, std::pair<int, int>> s_axis;
-	static std::unordered_map<int, Input::KeyState> s_key_state;
-	static std::unordered_map<int, float> s_axis_state;
+	}
+
+	enum class InputType : uint8_t {
+		Keyboard,
+		MouseButton,
+		MouseAxis,
+		MouseWheel,
+		GamepadButton,
+		GamepadAxis
+	};
+
+	struct InputState {
+		InputType type;
+		uint8_t device_id;
+		Input::Modifiers::Type modifiers;
+		Input::KeyState keystate;
+
+		uint32_t keycode;
+		float value;
+	};
+
+	struct InputBinding {
+		virtual float value() const = 0;
+		virtual Input::KeyState keystate() const = 0;
+	};
+
+	struct ActionBinding : public InputBinding {
+		std::vector<const InputState*> states;
+
+		float value() const override {
+			const auto state = keystate();
+			return state == Input::KeyState::Down || state == Input::KeyState::Pressed ? 1.0f : 0.0f;
+		}
+		Input::KeyState keystate() const override {
+			Input::KeyState last_state = Input::KeyState::Up;
+			for (const auto state : states) {
+				if (last_state == Input::KeyState::Down) {
+					return last_state;
+				}
+
+				auto current_state = state->keystate;
+
+				if (last_state == Input::keyState::Pressed && current_state != Input::keyState::Down) {
+					return last_state;
+				}
+				last_state = current_state;
+			}
+			return last_state;
+		}
+	};
+	struct AxisBinding : public InputBinding {
+		std::vector<std::pair<const InputState*, const InputState*>> states;
+		float multiplier = 1.0f;
+
+		float value() const override {
+			float value = 0.0f;
+			for (const auto [ positive, negative ] : states) {
+				value += positive.value - negative.value;
+			}
+			return value * multiplier;
+		}
+	};
+
+	static std::unordered_map<std::string, InputState> s_input_map;
+	static std::unordered_map<std::string, InputBinding> s_input_binds;
 
 	static double s_mouse_x, s_mouse_y;
 	static double s_mousewheel_x = 0, s_mousewheel_y = 0;
-	static int s_target_device = GLFW_JOYSTICK_1;
 
 	static int StringToKeycode(const std::string& name);
 	static std::string KeycodeToString(int key);
@@ -49,411 +103,72 @@ namespace gctk {
 		});
 	}
 	void Input::Poll() {
-		for (const auto& keycode: s_actions | std::views::values) {
-			if (!s_key_state.contains(keycode)) {
-				s_key_state.emplace(keycode, KeyState::Up);
-			}
-			const auto state = s_key_state.at(keycode);
-
-			if (keycode < MOUSE_BUTTON_ORIGIN) {
-				const int current = glfwGetKey(Client::Instance()->get_window(), keycode);
-				switch (state) {
-					case KeyState::Up: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Pressed;
-						}
-					} break;
-					case KeyState::Pressed: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Down;
-						} else {
-							s_key_state.at(keycode) = KeyState::Released;
-						}
-					} break;
-					case KeyState::Down: {
-						if (current == GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Released;
-						}
-					} break;
-					case KeyState::Released: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Pressed;
-						} else {
-							s_key_state.at(keycode) = KeyState::Up;
-						}
-					} break;
-					default: s_key_state.at(keycode) = KeyState::Up; break;
-				}
-			} else if (keycode < GAMEPAD_BUTTONS_ORIGIN) {
-				const int current = glfwGetMouseButton(Client::Instance()->get_window(), keycode - GAMEPAD_BUTTONS_ORIGIN);
-				switch (state) {
-					case KeyState::Up: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Pressed;
-						}
-					} break;
-					case KeyState::Pressed: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Down;
-						} else {
-							s_key_state.at(keycode) = KeyState::Released;
-						}
-					} break;
-					case KeyState::Down: {
-						if (current == GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Released;
-						}
-					} break;
-					case KeyState::Released: {
-						if (current != GLFW_RELEASE) {
-							s_key_state.at(keycode) = KeyState::Pressed;
-						} else {
-							s_key_state.at(keycode) = KeyState::Up;
-						}
-					} break;
-					default: s_key_state.at(keycode) = KeyState::Up; break;
-				}
-			} else if (keycode >= MOUSE_WHEEL_ORIGIN && keycode < MOUSE_MOTION_ORIGIN) {
-				const double dt = (keycode == MOUSE_WHEEL_ORIGIN) ? s_mousewheel_x : s_mousewheel_y;
-				if (s_axis_state.contains(keycode)) {
-					s_axis_state.at(keycode) = static_cast<float>(dt);
-				}
-				if (s_key_state.contains(keycode)) {
-					switch (s_key_state.at(keycode)) {
-						case KeyState::Up: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Pressed;
-							}
-						} break;
-						case KeyState::Pressed: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Down;
-							} else {
-								s_key_state.at(keycode) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Down: {
-							if (dt == 0.0) {
-								s_key_state.at(keycode) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Released: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Pressed;
-							} else {
-								s_key_state.at(keycode) = KeyState::Up;
-							}
-						} break;
-						default: s_key_state.at(keycode) = KeyState::Up; break;
-					}
-				}
-			} else if (keycode >= MOUSE_MOTION_ORIGIN && keycode < GAMEPAD_AXIS_ORIGIN) {
-				double x, y;
-				glfwGetCursorPos(Client::Instance()->get_window(), &x, &y);
-				const double dt = (keycode == MOUSE_MOTION_ORIGIN) ? (x - s_mouse_x) : (y - s_mouse_y);
-				if (s_axis_state.contains(keycode)) {
-					s_axis_state.at(keycode) = static_cast<float>(dt);
-				}
-				if (s_key_state.contains(keycode)) {
-					switch (s_key_state.at(keycode)) {
-						case KeyState::Up: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Pressed;
-							}
-						} break;
-						case KeyState::Pressed: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Down;
-							} else {
-								s_key_state.at(keycode) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Down: {
-							if (dt == 0.0) {
-								s_key_state.at(keycode) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Released: {
-							if (dt != 0.0) {
-								s_key_state.at(keycode) = KeyState::Pressed;
-							} else {
-								s_key_state.at(keycode) = KeyState::Up;
-							}
-						} break;
-						default: s_key_state.at(keycode) = KeyState::Up; break;
-					}
-				}
-
-				s_mouse_x = x;
-				s_mouse_y = y;
-			}
-		}
-
-		if (glfwJoystickIsGamepad(s_target_device)) {
-			GLFWgamepadstate state;
-			glfwGetGamepadState(s_target_device, &state);
-
-			for (int i = 0; i < GLFW_GAMEPAD_BUTTON_LAST; i++) {
-				const int key = GAMEPAD_BUTTONS_ORIGIN + i;
-				if (s_key_state.contains(key)) {
-					const int current = state.buttons[i];
-					switch (s_key_state.at(key)) {
-						case KeyState::Up: {
-							if (current != GLFW_RELEASE) {
-								s_key_state.at(key) = KeyState::Pressed;
-							}
-						} break;
-						case KeyState::Pressed: {
-							if (current != GLFW_RELEASE) {
-								s_key_state.at(key) = KeyState::Down;
-							} else {
-								s_key_state.at(key) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Down: {
-							if (current == GLFW_RELEASE) {
-								s_key_state.at(key) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Released: {
-							if (current != GLFW_RELEASE) {
-								s_key_state.at(key) = KeyState::Pressed;
-							} else {
-								s_key_state.at(key) = KeyState::Up;
-							}
-						} break;
-						default: s_key_state.at(key) = KeyState::Up; break;
-					}
-				}
-			}
-			for (int i = 0; i < GLFW_GAMEPAD_AXIS_LAST; i++) {
-				const int key = i + GAMEPAD_AXIS_ORIGIN;
-				if (s_axis_state.contains(key)) {
-					s_axis_state.at(key) = state.axes[i];
-				}
-				if (s_key_state.contains(key)) {
-					const double dt = state.axes[i];
-					switch (s_key_state.at(key)) {
-						case KeyState::Up: {
-							if (dt != 0.0) {
-								s_key_state.at(key) = KeyState::Pressed;
-							}
-						} break;
-						case KeyState::Pressed: {
-							if (dt != 0.0) {
-								s_key_state.at(key) = KeyState::Down;
-							} else {
-								s_key_state.at(key) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Down: {
-							if (dt == 0.0) {
-								s_key_state.at(key) = KeyState::Released;
-							}
-						} break;
-						case KeyState::Released: {
-							if (dt != 0.0) {
-								s_key_state.at(key) = KeyState::Pressed;
-							} else {
-								s_key_state.at(key) = KeyState::Up;
-							}
-						} break;
-						default: s_key_state.at(key) = KeyState::Up; break;
-					}
-				}
-			}
-		}
 	}
 
-	void Input::CreateAxis(const std::string& name, const std::string& negative_key, const std::string& positive_key) {
-		const int neg = StringToKeycode(negative_key);
-		const int pos = StringToKeycode(positive_key);
-
-		if (neg == GLFW_KEY_UNKNOWN) {
-			LogErr("Failed to set input axis \"{}\": Negative key \"{}\" is invalid!", name, negative_key);
-			return;
+	bool Input::CreateAxis(const std::string& name, const std::initializer_list<std::pair<std::string, std::string>>& pairs) {
+		std::vector<std::pair<std::string, std::string>> inputs;
+		for (const auto& pair : paris) {
+			inputs.push_back(pair);
 		}
-		if (pos == GLFW_KEY_UNKNOWN) {
-			LogErr("Failed to set input axis \"{}\": Positive key \"{}\" is invalid!", name, positive_key);
-			return;
-		}
-
-		if (!s_key_state.contains(neg)) {
-			s_key_state.emplace(neg, KeyState::Up);
-		}
-		if (!s_key_state.contains(pos)) {
-			s_key_state.emplace(pos, KeyState::Up);
-		}
-
-		if (s_axis.contains(name)) {
-			s_axis.at(name) = std::make_pair(neg, pos);
-		} else {
-			s_axis.emplace(name, std::make_pair(neg, pos));
-		}
+		return CreateAxis(name, std::move(inputs));
 	}
-	void Input::CreateAction(const std::string& name, const std::string& key) {
-		const int code = StringToKeycode(key);
-		if (code == GLFW_KEY_UNKNOWN) {
-			LogErr("Failed to set input action \"{}\": Keycode \"{}\" is invalid!", name, key);
-			return;
+	bool CreateAxis(const std::string& name, std::vector<std::pair<std::string, std::string>>&& pairs) {
+		if (s_input_binds.contains(name)) {
+			return false;
 		}
 
-		if (!s_key_state.contains(code)) {
-			s_key_state.emplace(code, KeyState::Up);
+		for (const auto& [ positive, negative ] : pairs) {
+			
 		}
 
-		if (s_actions.contains(name)) {
-			s_actions.at(name) = code;
-		} else {
-			s_actions.emplace(name, code);
-		}
+		return true;
+	}
+	bool Input::CreateAction(const std::string& name, const std::initializer_list<std::string>& keys) {
+
 	}
 
+	Input::KeyState Input::ActionState(const std::string& name) {
+		if (s_input_binds.contains(name)) {
+			return s_input_binds.at(name).keystate();
+		}
+		return Input::KeyState::Invalid;
+	}
 	bool Input::ActionPressed(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return false;
-		}
-		const auto keycode = s_actions.at(name);
-		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
-			return false;
-		}
-
-		if (!s_key_state.contains(keycode)) {
-			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
-			return false;
-		}
-
-		return s_key_state.at(keycode) == KeyState::Pressed;
+		return ActionState(name) == Input::KeyState::Pressed;
 	}
 
 	bool Input::ActionPressedOrDown(const std::string& name) {
-		return ActionDown(name) || ActionPressed(name);
+		const auto state = ActionState(name);
+		return state == Input::KeyState::Pressed || state == Input::KeyState::Down;
 	}
 
 	bool Input::ActionDown(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return false;
-		}
-		const auto keycode = s_actions.at(name);
-		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
-			return false;
-		}
-
-		if (!s_key_state.contains(keycode)) {
-			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
-			return false;
-		}
-
-		return s_key_state.at(keycode) == KeyState::Down;
+		return ActionState(name) == Input::KeyState::Down;
 	}
 	bool Input::ActionReleased(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return false;
-		}
-		const auto keycode = s_actions.at(name);
-		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
-			return false;
-		}
-
-		if (!s_key_state.contains(keycode)) {
-			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
-			return false;
-		}
-
-		return s_key_state.at(keycode) == KeyState::Released;
+		return ActionState(name) == Input::KeyState::Released;
 	}
 
 	bool Input::ActionReleasedOrUp(const std::string& name) {
-		return ActionUp(name) || ActionReleased(name);
+		const auto state = ActionState(name);
+		return state == Input::KeyState::Released || state == Input::KeyState::Up;
 	}
 
 	bool Input::ActionUp(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return false;
-		}
-		const auto keycode = s_actions.at(name);
-		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
-			return false;
-		}
-
-		if (!s_key_state.contains(keycode)) {
-			s_key_state.emplace(keycode, KeyState::Up);
-			LogWarn("Keycode \"{}\" was not initialized! Try again...", KeycodeToString(keycode));
-			return false;
-		}
-
-		return s_key_state.at(keycode) == KeyState::Up;
+		return ActionState(name) == Input::KeyState::Up;
+		
 	}
 	float Input::AxisValue(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return false;
+		if (s_input_binds.contains(name)) {
+			return s_input_binds.at(name).value();
 		}
-		const auto [ neg, pos ] = s_axis.at(name);
-		if (neg == GLFW_KEY_UNKNOWN) {
-			LogErr("Input axis \"{}\" has no valid negative keycode assigned!", name);
-			return false;
-		}
-		if (pos == GLFW_KEY_UNKNOWN) {
-			LogErr("Input axis \"{}\" has no valid positive keycode assigned!", name);
-			return false;
-		}
-
-		const auto pos_val = GetKeyAsFloat(pos);
-		const auto neg_val = GetKeyAsFloat(neg);
-
-		if (pos_val == NAN) {
-			LogErr("Could not get state of keycode \"{}\"", KeycodeToString(pos));
-			return 0;
-		}
-		if (neg_val == NAN) {
-			LogErr("Could not get state of keycode \"{}\"", KeycodeToString(neg));
-			return 0;
-		}
-
-		return pos_val - neg_val;
+		return 0.0f;
 	}
 	Vector2 Input::Vector2Value(const std::string& name_x, const std::string& name_y) {
 		return Vector2 { AxisValue(name_x), AxisValue(name_y) };
 	}
 	Vector3 Input::Vector3Value(const std::string& name_x, const std::string& name_y, const std::string& name_z) {
 		return Vector3 { AxisValue(name_x), AxisValue(name_y), AxisValue(name_z) };
-	}
-
-	Input::KeyState Input::GetKeyState(const std::string& name) {
-		if (!s_actions.contains(name)) {
-			LogErr("Input action \"{}\" doesn't exists!", name);
-			return KeyState::Invalid;
-		}
-		const auto keycode = s_actions.at(name);
-		if (keycode == GLFW_KEY_UNKNOWN) {
-			LogErr("Input action \"{}\" has no valid keycode assigned!", name);
-			return KeyState::Invalid;
-		}
-		return s_key_state.at(keycode);
-	}
-
-	void Input::SetTargetController(const int index) {
-		if (index > GLFW_JOYSTICK_LAST) {
-			LogErr("Controller id {} is out of range! (Maximum device count is {})", index, GLFW_JOYSTICK_LAST);
-			return;
-		}
-
-		s_target_device = index;
-	}
-	int Input::GetTargetController() {
-		return s_target_device;
 	}
 
 	void Input::SaveInputs() {
@@ -854,12 +569,6 @@ namespace gctk {
 	}
 
 	static float GetKeyAsFloat(const int key) {
-		if (s_key_state.contains(key)) {
-			return s_key_state.at(key) == Input::KeyState::Up || s_key_state.at(key) == Input::KeyState::Pressed ? 1 : 0;
-		}
-		if (s_axis_state.contains(key)) {
-			return s_axis_state.at(key);
-		}
 		return NAN;
 	}
 }

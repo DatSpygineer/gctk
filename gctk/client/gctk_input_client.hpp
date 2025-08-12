@@ -8,7 +8,7 @@
 
 
 namespace gctk::Input {
-	enum class KeyState {
+	enum class KeyState : int8_t {
 		Up,
 		Pressed,
 		Down,
@@ -17,12 +17,29 @@ namespace gctk::Input {
 		Invalid = -1
 	};
 
+	namespace Modifiers {
+		enum Type : uint8_t {
+			None   = 0x00,
+			LCtrl  = 0x01,
+			LShift = 0x02,
+			LAlt   = 0x04,
+			LMeta  = 0x08,
+			RCtrl  = 0x10,
+			RShift = 0x20,
+			RAlt   = 0x40,
+			RMeta  = 0x80
+		};
+	}
+
 	void Initialize(const Client& client);
 	void Poll();
 
-	void CreateAxis(const std::string& name, const std::string& negative_key, const std::string& positive_key);
-	void CreateAction(const std::string& name, const std::string& key);
+	bool CreateAxis(const std::string& name, const std::initializer_list<std::pair<std::string, std::string>>& pairs);
+	bool CreateAxis(const std::string& name, std::vector<std::pair<std::string, std::string>>&& pairs);
+	bool CreateAction(const std::string& name, const std::initializer_list<std::string>& keys);
+	bool SetAxisMultiplier(const std::string& name, float multiplier);
 
+	KeyState ActionState(const std::string& name);
 	bool ActionPressed(const std::string& name);
 	bool ActionPressedOrDown(const std::string& name);
 	bool ActionDown(const std::string& name);
@@ -32,11 +49,6 @@ namespace gctk::Input {
 	float AxisValue(const std::string& name);
 	Vector2 Vector2Value(const std::string& name_x, const std::string& name_y);
 	Vector3 Vector3Value(const std::string& name_x, const std::string& name_y, const std::string& name_z);
-
-	KeyState GetKeyState(const std::string& name);
-
-	void SetTargetController(int index);
-	int GetTargetController();
 
 	void SaveInputs();
 }
