@@ -40,6 +40,7 @@ namespace gctk {
 	Client::~Client() {
 		Console::StoreUserData();
 		Input::SaveInputs();
+		Input::Dispose();
 
 		glfwSetWindowIcon(m_pWindow, 0, nullptr);
 		glfwSetCursor(m_pWindow, nullptr);
@@ -314,6 +315,13 @@ namespace gctk {
 			m_pCursorImage = nullptr;
 		}
 		glfwSetCursor(m_pWindow, nullptr);
+	}
+
+	void Client::set_cursor_mode(CursorMode mode) const {
+		glfwSetInputMode(m_pWindow, GLFW_CURSOR, static_cast<int>(mode));
+	}
+	CursorMode Client::get_cursor_mode() const {
+		return static_cast<CursorMode>(glfwGetInputMode(m_pWindow, GLFW_CURSOR));
 	}
 
 	void Client::set_background_color(const Color& color) {

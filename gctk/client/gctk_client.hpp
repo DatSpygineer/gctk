@@ -9,6 +9,13 @@
 #include <GLFW/glfw3.h>
 
 namespace gctk {
+	enum class CursorMode {
+		Normal   = GLFW_CURSOR_NORMAL,
+		Hidden   = GLFW_CURSOR_HIDDEN,
+		Disabled = GLFW_CURSOR_DISABLED,
+		Captured = GLFW_CURSOR_CAPTURED
+	};
+
 	class Client {
 		GLFWwindow* m_pWindow;
 		bool m_bGlfwInitialized;
@@ -44,6 +51,9 @@ namespace gctk {
 
 		void set_cursor(const std::string& cursor_name);
 		void reset_cursor();
+
+		void set_cursor_mode(CursorMode mode) const;
+		[[nodiscard]] CursorMode get_cursor_mode() const;
 
 		[[nodiscard]] constexpr GLFWwindow* get_window() const { return m_pWindow; }
 

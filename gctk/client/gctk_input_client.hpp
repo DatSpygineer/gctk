@@ -34,10 +34,12 @@ namespace gctk::Input {
 
 	void Initialize(const Client& client);
 	void Poll();
+	void Dispose();
 
 	bool CreateAxis(const std::string& name, const std::initializer_list<std::pair<std::string, std::string>>& pairs);
 	bool CreateAxis(const std::string& name, std::vector<std::pair<std::string, std::string>>&& pairs);
 	bool CreateAction(const std::string& name, const std::initializer_list<std::string>& keys);
+	bool CreateAction(const std::string& name, std::vector<std::string>&& keys);
 	bool SetAxisMultiplier(const std::string& name, float multiplier);
 
 	KeyState ActionState(const std::string& name);
@@ -55,9 +57,9 @@ namespace gctk::Input {
 }
 
 template<>
-struct std::formatter<gctk::Input::KeyState> : public std::formatter<std::string_view> {
+struct std::formatter<gctk::Input::KeyState> : std::formatter<std::string_view> {
 	template<class FmtContext>
-	typename FmtContext::iterator format(gctk::Input::KeyState value, FmtContext& ctx) const {
+	FmtContext::iterator format(const gctk::Input::KeyState value, FmtContext& ctx) const {
 		std::string_view name;
 		switch (value) {
 			case gctk::Input::KeyState::Down: name = "Down"; break;

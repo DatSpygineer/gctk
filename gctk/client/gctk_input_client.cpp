@@ -1,5 +1,6 @@
 #include "gctk_input_client.hpp"
 
+#include <cstring>
 #include <fstream>
 #include <ranges>
 #include <GLFW/glfw3.h>
@@ -18,17 +19,28 @@
 #define GAMEPAD_AXIS_ORIGIN (MOUSE_MOTION_ORIGIN + 2)
 
 namespace gctk {
-	void _cmd_bindmult(const std::vector<std::string>& args);
+	void _cmd_bind_mult(const std::vector<std::string>& args);
 
 	CONCOMMAND(bind, CVAR_DEFAULT_FLAGS) {
 		AssertThrow(args.size() >= 2, "Expected 2 or more arguments, got {}", args.size());
-		Input::CreateAction(args.at(0), args.at(1));
+		std::vector<std::string> keys;
+		keys.reserve(args.size() - 1);
+		for (size_t i = 1; i < args.size(); ++i) {
+			keys.push_back(args[i]);
+		}
+		Input::CreateAction(args.at(0), std::move(keys));
 	}
 	CONCOMMAND(bind_axis, CVAR_DEFAULT_FLAGS) {
 		AssertThrow(args.size() >= 3 && args.size() % 2 == 1, "Expected 3 or more arguments, got {}", args.size());
-		Input::CreateAxis(args.at(0), args.at(1), args.at(2));
+		std::vector<std::pair<std::string, std::string>> pairs;
+
+		for (size_t i = 1; i < args.size(); i += 2) {
+			pairs.emplace_back(args[i], args[i + 1]);
+		}
+
+		Input::CreateAxis(args.at(0), std::move(pairs));
 	}
-	CVar bindmult("bindmult", &_cmd_bindmult, CVAR_DEFAULT_FLAGS);
+	CVar bind_mult("bind_mult", &_cmd_bind_mult, CVAR_DEFAULT_FLAGS);
 
 	enum class InputType : uint8_t {
 		Keyboard,
@@ -45,25 +57,30 @@ namespace gctk {
 		Input::Modifiers::Type modifiers;
 		Input::KeyState keystate;
 
-		uint32_t keycode;
+		int keycode;
 		float value;
 		int direction;
 	};
 
 	struct InputBinding {
-		virtual float value() const = 0;
-		virtual Input::KeyState keystate() const = 0;
-		virtual bool is_axis() const = 0;
+		virtual ~InputBinding() = default;
+
+		[[nodiscard]] virtual float value() const = 0;
+		[[nodiscard]] virtual Input::KeyState keystate() const = 0;
+		[[nodiscard]] virtual bool is_axis() const = 0;
 	};
 
-	struct ActionBinding : public InputBinding {
-		std::vector<const InputState*> states;
+	struct ActionBinding final : public InputBinding {
+		std::vector<InputState*> states;
 
-		float value() const override {
+		explicit ActionBinding(const std::vector<InputState*>& states) : states(states) { }
+		explicit ActionBinding(std::vector<InputState*>&& states) : states(std::move(states)) { }
+
+		[[nodiscard]] float value() const override {
 			const auto state = keystate();
 			return state == Input::KeyState::Down || state == Input::KeyState::Pressed ? 1.0f : 0.0f;
 		}
-		Input::KeyState keystate() const override {
+		[[nodiscard]] Input::KeyState keystate() const override {
 			Input::KeyState last_state = Input::KeyState::Up;
 			for (const auto state : states) {
 				if (last_state == Input::KeyState::Down) {
@@ -72,43 +89,43 @@ namespace gctk {
 
 				auto current_state = state->keystate;
 
-				if (last_state == Input::keyState::Pressed && current_state != Input::keyState::Down) {
+				if (last_state == Input::KeyState::Pressed && current_state != Input::KeyState::Down) {
 					return last_state;
 				}
 				last_state = current_state;
 			}
 			return last_state;
 		}
-		constexpr bool is_axis() const override {
+		[[nodiscard]] constexpr bool is_axis() const override {
 			return false;
 		}
 	};
-	struct AxisBinding : public InputBinding {
-		std::vector<std::pair<const InputState*, const InputState*>> states;
+	struct AxisBinding final : public InputBinding {
+		std::vector<std::pair<InputState*, InputState*>> states;
 		float multiplier;
 
-		AxisBinding(const std::vector<std::pair<const InputState*, const InputState*>>& states, float multiplier = 1.0f) :
+		explicit AxisBinding(const std::vector<std::pair<InputState*, InputState*>>& states, const float multiplier = 1.0f) :
 			states(states), multiplier(multiplier) { }
-		AxisBinding(std::vector<std::pair<const InputState*, const InputState*>>&& states, float multiplier = 1.0f) noexcept :
+		explicit AxisBinding(std::vector<std::pair<InputState*, InputState*>>&& states, const float multiplier = 1.0f) noexcept :
 			states(std::move(states)), multiplier(multiplier) { }
 
-		float value() const override {
+		[[nodiscard]] float value() const override {
 			float value = 0.0f;
 			for (const auto [ negative, positive ] : states) {
-				value += positive.value - negative.value;
+				value += positive->value - negative->value;
 			}
 			return value * multiplier;
 		}
-		Input::KeyState keystate() const override {
+		[[nodiscard]] constexpr Input::KeyState keystate() const override {
 			return Input::KeyState::Invalid;
 		}
-		constexpr bool is_axis() const override {
+		[[nodiscard]] constexpr bool is_axis() const override {
 			return true;
 		}
 	};
 
 	static std::unordered_map<std::string, InputState> s_input_map;
-	static std::unordered_map<std::string, InputBinding> s_input_binds;
+	static std::unordered_map<std::string, InputBinding*> s_input_binds;
 
 	static double s_mouse_x, s_mouse_y;
 	static double s_mousewheel_x = 0, s_mousewheel_y = 0;
@@ -132,14 +149,11 @@ namespace gctk {
 			while (std::getline(ifs, line)) {
 				line = StringUtil::Trim(line);
 				if (line.starts_with("#keymap_version")) {
-					line.erase(line.begin(), line.begin() + strlen("#keymap_version"));
-					uint32_t version;
-					if (!StringUtil::ParseInt<uint32_t>(line, version)) {
+					line.erase(line.begin(), line.begin() + static_cast<std::string::difference_type>(strlen("#keymap_version")));
+					if (uint32_t version; !StringUtil::ParseInt<uint32_t>(line, version)) {
 						LogErr("Invalid version number \"{}\", expected a valid integer", line);
-					} else {
-						if (version != KEYMAP_VERSION) {
-							LogWarn("Input map uses version {}, current version is {}! Errors may occour", version, KEYMAP_VERSION);
-						}
+					} else if (version != KEYMAP_VERSION) {
+						LogWarn("Input map uses version {}, current version is {}! Errors may occur", version, KEYMAP_VERSION);
 					}
 				}
 			}
@@ -151,9 +165,16 @@ namespace gctk {
 	void Input::Poll() {
 	}
 
+	void Input::Dispose() {
+		for (const auto& binding: s_input_binds | std::views::values) {
+			delete binding;
+		}
+		s_input_binds.clear();
+	}
+
 	bool Input::CreateAxis(const std::string& name, const std::initializer_list<std::pair<std::string, std::string>>& pairs) {
 		std::vector<std::pair<std::string, std::string>> inputs;
-		for (const auto& pair : paris) {
+		for (const auto& pair : pairs) {
 			inputs.push_back(pair);
 		}
 		return CreateAxis(name, std::move(inputs));
@@ -163,16 +184,16 @@ namespace gctk {
 			return false;
 		}
 
-		std::vector<std::pair<const InputState*, const InputState*>> states;
+		std::vector<std::pair<InputState*, InputState*>> states;
 
 		for (auto [ negative, positive ] : pairs) {
-			auto pos = StringToKeycode(positive);
+			const auto pos = StringToKeycode(positive);
 			if (pos == GLFW_KEY_UNKNOWN) {
 				LogErr("Unknown key \"{}\"", positive);
 				return false;
 			}
 
-			auto neg = StringToKeycode(negative);
+			const auto neg = StringToKeycode(negative);
 			if (neg == GLFW_KEY_UNKNOWN) {
 				LogErr("Unknown key \"{}\"", negative);
 				return false;
@@ -203,22 +224,30 @@ namespace gctk {
 				});
 			}
 
-			states.emplace({ &s_input_map.at(positive), &s_input_map.at(negative) });
+			states.emplace_back(&s_input_map.at(positive), &s_input_map.at(negative));
 		}
 
-		s_input_binds.emplace(name, AxisBinding { std::move(states) });
+		s_input_binds.emplace(name, new AxisBinding { std::move(states) }); // NOLINT: Cleaned up by Input::Dispose
 
-		return true;
+		return true; // NOLINT: Cleaned up by Input::Dispose
 	}
 	bool Input::CreateAction(const std::string& name, const std::initializer_list<std::string>& keys) {
+		std::vector<std::string> keys_vec;
+		keys_vec.reserve(keys.size());
+		for (const auto& key : keys) {
+			keys_vec.emplace_back(key);
+		}
+		return CreateAction(name, std::move(keys_vec));
+	}
+	bool Input::CreateAction(const std::string& name, std::vector<std::string>&& keys) {
 		if (s_input_binds.contains(name)) {
 			return false;
 		}
 
-		std::vector<const InputState*> states;
+		std::vector<InputState*> states;
 
-		for (auto key : keys) {
-			auto code = StringToKeycode(key);
+		for (const auto& key : keys) {
+			const auto code = StringToKeycode(key);
 			if (code == GLFW_KEY_UNKNOWN) {
 				LogErr("Unknown key \"{}\"", name);
 				return false;
@@ -240,12 +269,14 @@ namespace gctk {
 			states.emplace_back(&s_input_map.at(key));
 		}
 
-		return true;
+		s_input_binds.emplace(name, new ActionBinding { std::move(states) }); // NOLINT: Cleaned up by Input::Dispose
+
+		return true; // NOLINT: Cleaned up by Input::Dispose
 	}
 
 	Input::KeyState Input::ActionState(const std::string& name) {
 		if (s_input_binds.contains(name)) {
-			return s_input_binds.at(name).keystate();
+			return s_input_binds.at(name)->keystate();
 		}
 		return Input::KeyState::Invalid;
 	}
@@ -276,7 +307,7 @@ namespace gctk {
 	}
 	float Input::AxisValue(const std::string& name) {
 		if (s_input_binds.contains(name)) {
-			return s_input_binds.at(name).value();
+			return s_input_binds.at(name)->value();
 		}
 		return 0.0f;
 	}
@@ -292,9 +323,9 @@ namespace gctk {
 		std::ofstream ofs(path);
 		ofs << "#keymap_version " << KEYMAP_VERSION << std::endl;
 
-		for (const auto& [ name, bind ] : s_input_binds) {
-			if (bind.is_axis()) {
-				auto axis = dynamic_cast<const AxisBinding*>(&bind);
+		for (const auto& [ name, binding ] : s_input_binds) {
+			if (binding->is_axis()) {
+				auto axis = dynamic_cast<const AxisBinding*>(binding);
 				AssertThrow(axis != nullptr, "Failed to get axis binding data!");
 				ofs << "bind_axis " << name;
 				for (const auto& [ neg, pos ] : axis->states) {
@@ -307,11 +338,11 @@ namespace gctk {
 					ofs << "bindmult " << name << " " << axis->multiplier << std::endl;
 				}
 			} else {
-				auto action = dynamic_cast<const ActionBinding*>(&bind);
+				auto action = dynamic_cast<const ActionBinding*>(binding);
 				AssertThrow(action != nullptr, "Failed to get action binding data!");
 				ofs << "bind " << name;
 				for (const auto& key : action->states) {
-					ofs << " " << StringToKeycode(key->keycode);
+					ofs << " " << KeycodeToString(key->keycode);
 				}
 				ofs << std::endl;
 			}
@@ -338,14 +369,13 @@ namespace gctk {
 			return GLFW_KEY_UNKNOWN;
 		}
 
-		const auto name_c = StringUtil::ToLower(name);
+		auto name_c = StringUtil::ToLower(name);
 		if (name_c.starts_with('+') || name_c.starts_with('-')) {
 			name_c = StringUtil::TrimBeg(name_c.substr(1));
 		}
 
 		if (name_c.starts_with("kp_")) {
-			const auto c = name_c[3];
-			if (c >= '0' && c <= '9') {
+			if (const auto c = name_c[3]; c >= '0' && c <= '9') {
 				return c - '0' + GLFW_KEY_KP_0;
 			}
 		}
@@ -722,9 +752,9 @@ namespace gctk {
 		return InputType::GamepadAxis;
 	}
 
-	void _cmd_bindmult(const std::vector<std::string>& args) {
+	void _cmd_bind_mult(const std::vector<std::string>& args) {
 		AssertThrow(args.size() >= 2, "Expected 2 or more arguments, got {}", args.size());
-		const auto name = args.at(0);
+		const auto& name = args.at(0);
 
 		if (!s_input_binds.contains(name)) {
 			LogErr("Attempt to set axis multiplier for bind \"{}\", that doesn't exists!", name);
@@ -732,10 +762,16 @@ namespace gctk {
 		}
 
 		float value;
-		if (!StringUtil::ParseFloat(args.at(1), &value)) {
+		if (!StringUtil::ParseFloat(args.at(1), value)) {
 			LogErr("Expected a valid floating-point value for axis multiplier! Value \"{}\" is not a valid number", args.at(1));
 			return;
 		}
-		s_input_binds.at(name).multiplier = value;
+
+		if (s_input_binds.at(name)->is_axis()) {
+			const auto axis = dynamic_cast<AxisBinding*>(s_input_binds.at(name));
+			axis->multiplier = value;
+		} else {
+			LogWarn("Cannot set multiplier of action \"{}\"", name);
+		}
 	}
 }
