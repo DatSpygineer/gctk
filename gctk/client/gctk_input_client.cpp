@@ -9,7 +9,17 @@
 #include "gctk_filesys.hpp"
 #include "gctk_str.hpp"
 
+#define MOUSE_BUTTON_ORIGIN (GLFW_KEY_LAST + 1)
+#define GAMEPAD_BUTTONS_ORIGIN (MOUSE_BUTTON_ORIGIN + 2)
+
+#define MOUSE_WHEEL_ORIGIN  (GAMEPAD_BUTTONS_ORIGIN + GLFW_GAMEPAD_BUTTON_LAST + 1)
+#define MOUSE_MOTION_ORIGIN (MOUSE_WHEEL_ORIGIN + 2)
+
+#define GAMEPAD_AXIS_ORIGIN (MOUSE_MOTION_ORIGIN + 2)
+
 namespace gctk {
+	void _cmd_bindmult(const std::vector<std::string>& args);
+
 	CONCOMMAND(bind, CVAR_DEFAULT_FLAGS) {
 		AssertThrow(args.size() >= 2, "Expected 2 or more arguments, got {}", args.size());
 		Input::CreateAction(args.at(0), args.at(1));
@@ -18,10 +28,7 @@ namespace gctk {
 		AssertThrow(args.size() >= 3 && args.size() % 2 == 1, "Expected 3 or more arguments, got {}", args.size());
 		Input::CreateAxis(args.at(0), args.at(1), args.at(2));
 	}
-	CONCOMMAND(bindmult, CVAR_DEFAULT_FLAGS) {
-		AssertThrow(args.size() == 2, "Expected 2 arguments, got {}", args.size());
-
-	}
+	CVar bindmult("bindmult", &_cmd_bindmult, CVAR_DEFAULT_FLAGS);
 
 	enum class InputType : uint8_t {
 		Keyboard,
@@ -40,11 +47,13 @@ namespace gctk {
 
 		uint32_t keycode;
 		float value;
+		int direction;
 	};
 
 	struct InputBinding {
 		virtual float value() const = 0;
 		virtual Input::KeyState keystate() const = 0;
+		virtual bool is_axis() const = 0;
 	};
 
 	struct ActionBinding : public InputBinding {
@@ -70,17 +79,31 @@ namespace gctk {
 			}
 			return last_state;
 		}
+		constexpr bool is_axis() const override {
+			return false;
+		}
 	};
 	struct AxisBinding : public InputBinding {
 		std::vector<std::pair<const InputState*, const InputState*>> states;
-		float multiplier = 1.0f;
+		float multiplier;
+
+		AxisBinding(const std::vector<std::pair<const InputState*, const InputState*>>& states, float multiplier = 1.0f) :
+			states(states), multiplier(multiplier) { }
+		AxisBinding(std::vector<std::pair<const InputState*, const InputState*>>&& states, float multiplier = 1.0f) noexcept :
+			states(std::move(states)), multiplier(multiplier) { }
 
 		float value() const override {
 			float value = 0.0f;
-			for (const auto [ positive, negative ] : states) {
+			for (const auto [ negative, positive ] : states) {
 				value += positive.value - negative.value;
 			}
 			return value * multiplier;
+		}
+		Input::KeyState keystate() const override {
+			return Input::KeyState::Invalid;
+		}
+		constexpr bool is_axis() const override {
+			return true;
 		}
 	};
 
@@ -92,7 +115,7 @@ namespace gctk {
 
 	static int StringToKeycode(const std::string& name);
 	static std::string KeycodeToString(int key);
-	static float GetKeyAsFloat(int key);
+	static InputType KeycodeToInputType(int key);
 
 	void Input::Initialize(const Client& client) {
 		glfwGetCursorPos(client.get_window(), &s_mouse_x, &s_mouse_y);
@@ -101,6 +124,29 @@ namespace gctk {
 			s_mousewheel_x = xoffset;
 			s_mousewheel_y = yoffset;
 		});
+
+		if (Console::ConfigExists("keybinds.cfg")) {
+			std::ifstream ifs(Paths::CfgPath() / "keybinds.cfg");
+
+			std::string line;
+			while (std::getline(ifs, line)) {
+				line = StringUtil::Trim(line);
+				if (line.starts_with("#keymap_version")) {
+					line.erase(line.begin(), line.begin() + strlen("#keymap_version"));
+					uint32_t version;
+					if (!StringUtil::ParseInt<uint32_t>(line, version)) {
+						LogErr("Invalid version number \"{}\", expected a valid integer", line);
+					} else {
+						if (version != KEYMAP_VERSION) {
+							LogWarn("Input map uses version {}, current version is {}! Errors may occour", version, KEYMAP_VERSION);
+						}
+					}
+				}
+			}
+			ifs.close();
+
+			Console::LoadConfig("keybinds.cfg");
+		}
 	}
 	void Input::Poll() {
 	}
@@ -117,14 +163,84 @@ namespace gctk {
 			return false;
 		}
 
-		for (const auto& [ positive, negative ] : pairs) {
-			
+		std::vector<std::pair<const InputState*, const InputState*>> states;
+
+		for (auto [ negative, positive ] : pairs) {
+			auto pos = StringToKeycode(positive);
+			if (pos == GLFW_KEY_UNKNOWN) {
+				LogErr("Unknown key \"{}\"", positive);
+				return false;
+			}
+
+			auto neg = StringToKeycode(negative);
+			if (neg == GLFW_KEY_UNKNOWN) {
+				LogErr("Unknown key \"{}\"", negative);
+				return false;
+			}
+
+			if (!s_input_map.contains(positive)) {
+				s_input_map.emplace(positive, InputState {
+					KeycodeToInputType(pos),
+					0,
+					Input::Modifiers::None,
+					Input::KeyState::Up,
+					pos,
+					0.0f,
+					positive.starts_with('+') ? 1 :
+					(positive.starts_with('-') ? -1 : 0)
+				});
+			}
+			if (!s_input_map.contains(negative)) {
+				s_input_map.emplace(negative, InputState {
+					KeycodeToInputType(neg),
+					0,
+					Input::Modifiers::None,
+					Input::KeyState::Up,
+					neg,
+					0.0f,
+					negative.starts_with('+') ? 1 :
+					(negative.starts_with('-') ? -1 : 0)
+				});
+			}
+
+			states.emplace({ &s_input_map.at(positive), &s_input_map.at(negative) });
 		}
+
+		s_input_binds.emplace(name, AxisBinding { std::move(states) });
 
 		return true;
 	}
 	bool Input::CreateAction(const std::string& name, const std::initializer_list<std::string>& keys) {
+		if (s_input_binds.contains(name)) {
+			return false;
+		}
 
+		std::vector<const InputState*> states;
+
+		for (auto key : keys) {
+			auto code = StringToKeycode(key);
+			if (code == GLFW_KEY_UNKNOWN) {
+				LogErr("Unknown key \"{}\"", name);
+				return false;
+			}
+
+			if (!s_input_map.contains(key)) {
+				s_input_map.emplace(key, InputState {
+					KeycodeToInputType(code),
+					0,
+					Input::Modifiers::None,
+					Input::KeyState::Up,
+					code,
+					0.0f,
+					key.starts_with('+') ? 1 :
+					(key.starts_with('-') ? -1 : 0)
+				});
+			}
+
+			states.emplace_back(&s_input_map.at(key));
+		}
+
+		return true;
 	}
 
 	Input::KeyState Input::ActionState(const std::string& name) {
@@ -174,16 +290,31 @@ namespace gctk {
 	void Input::SaveInputs() {
 		const auto path = Paths::CfgPath() / "keybinds.cfg";
 		std::ofstream ofs(path);
+		ofs << "#keymap_version " << KEYMAP_VERSION << std::endl;
 
-		for (const auto& [name, keycode] : s_actions) {
-			ofs << "bind " << name << " " << KeycodeToString(keycode) << std::endl;
-		}
+		for (const auto& [ name, bind ] : s_input_binds) {
+			if (bind.is_axis()) {
+				auto axis = dynamic_cast<const AxisBinding*>(&bind);
+				AssertThrow(axis != nullptr, "Failed to get axis binding data!");
+				ofs << "bind_axis " << name;
+				for (const auto& [ neg, pos ] : axis->states) {
+					ofs << " " << KeycodeToString(neg->keycode) << " " << KeycodeToString(pos->keycode);
+				}
 
-		ofs << std::endl;
+				ofs << std::endl;
 
-		for (const auto& [name, keycodes] : s_axis) {
-			const auto [ neg, pos ] = keycodes;
-			ofs << "bind_axis " << name << " " << KeycodeToString(neg) << " " << KeycodeToString(pos) << std::endl;
+				if (axis->multiplier != 1.0f) {
+					ofs << "bindmult " << name << " " << axis->multiplier << std::endl;
+				}
+			} else {
+				auto action = dynamic_cast<const ActionBinding*>(&bind);
+				AssertThrow(action != nullptr, "Failed to get action binding data!");
+				ofs << "bind " << name;
+				for (const auto& key : action->states) {
+					ofs << " " << StringToKeycode(key->keycode);
+				}
+				ofs << std::endl;
+			}
 		}
 
 		ofs << std::endl;
@@ -208,6 +339,10 @@ namespace gctk {
 		}
 
 		const auto name_c = StringUtil::ToLower(name);
+		if (name_c.starts_with('+') || name_c.starts_with('-')) {
+			name_c = StringUtil::TrimBeg(name_c.substr(1));
+		}
+
 		if (name_c.starts_with("kp_")) {
 			const auto c = name_c[3];
 			if (c >= '0' && c <= '9') {
@@ -568,7 +703,39 @@ namespace gctk {
 		}
 	}
 
-	static float GetKeyAsFloat(const int key) {
-		return NAN;
+	static InputType KeycodeToInputType(int key) {
+		if (key < MOUSE_BUTTON_ORIGIN) {
+			return InputType::Keyboard;
+		}
+		if (key < GAMEPAD_BUTTONS_ORIGIN) {
+			return InputType::MouseButton;
+		}
+		if (key < MOUSE_WHEEL_ORIGIN) {
+			return InputType::GamepadButton;
+		}
+		if (key < MOUSE_MOTION_ORIGIN) {
+			return InputType::MouseWheel;
+		}
+		if (key < GAMEPAD_AXIS_ORIGIN) {
+			return InputType::MouseAxis;
+		}
+		return InputType::GamepadAxis;
+	}
+
+	void _cmd_bindmult(const std::vector<std::string>& args) {
+		AssertThrow(args.size() >= 2, "Expected 2 or more arguments, got {}", args.size());
+		const auto name = args.at(0);
+
+		if (!s_input_binds.contains(name)) {
+			LogErr("Attempt to set axis multiplier for bind \"{}\", that doesn't exists!", name);
+			return;
+		}
+
+		float value;
+		if (!StringUtil::ParseFloat(args.at(1), &value)) {
+			LogErr("Expected a valid floating-point value for axis multiplier! Value \"{}\" is not a valid number", args.at(1));
+			return;
+		}
+		s_input_binds.at(name).multiplier = value;
 	}
 }

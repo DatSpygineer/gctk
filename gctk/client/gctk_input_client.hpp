@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 
+#define KEYMAP_VERSION 1
 
 namespace gctk::Input {
 	enum class KeyState : int8_t {
