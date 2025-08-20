@@ -11,10 +11,11 @@ namespace gctk {
 	enum class AssetType {
 		Invalid,
 		PlainText,
-		JsonData,
+		XmlData,
 		Script,
 #ifdef GCTK_CLIENT
-		Texture,
+		TextureDef,
+		TextureImage,
 		Mesh,
 		Animation,
 		Shader,
@@ -30,6 +31,8 @@ namespace gctk {
 
 	using AssetRef = std::shared_ptr<Asset>;
 	using AssetPackRef = std::shared_ptr<AssetPack>;
+
+	class AssetReader;
 
 	class Asset final {
 		void* m_pData;
@@ -56,6 +59,29 @@ namespace gctk {
 			Assert(ptr != nullptr, std::format("Failed to cast asset \"{}\" to type \"{}\"", path, typeid(T).name()));
 			return ptr;
 		}
+
+		friend class AssetReader;
+	};
+
+	class AssetReader final : public std::istream {
+	public:
+		explicit AssetReader(Asset& asset);
+		explicit AssetReader(const AssetRef& asset) : AssetReader(*asset) { }
+
+		std::string read_string(size_t char_n);
+		std::string read_string();
+		std::string read_all_to_string();
+
+		std::streamsize size();
+		std::streamsize remaining_size();
+	private:
+		class AssetReaderBuffer final : public std::basic_streambuf<char> {
+			Asset& m_asset;
+		public:
+			explicit AssetReaderBuffer(Asset& asset);
+		};
+
+		AssetReaderBuffer m_buffer;
 	};
 
 	class AssetPack final {

@@ -20,7 +20,7 @@ file(GLOB_RECURSE GCTK_CLIENT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/client/*.hpp ${C
 file(GLOB_RECURSE GCTK_SERVER_SOURCES ${CMAKE_CURRENT_LIST_DIR}/server/*.hpp ${CMAKE_CURRENT_LIST_DIR}/server/*.cpp)
 
 add_library(gctk_client STATIC ${GCTK_CLIENT_SOURCES} ${GCTK_SHARED_SOURCES})
-target_link_libraries(gctk_client PUBLIC OpenGL::GL GLEW::GLEW glfw)
+target_link_libraries(gctk_client PUBLIC OpenGL::GL GLEW::GLEW glfw tinyxml2::tinyxml2)
 target_include_directories(gctk_client PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/client
         ${CMAKE_CURRENT_LIST_DIR}/shared
@@ -30,6 +30,7 @@ target_include_directories(gctk_client PUBLIC
 target_compile_definitions(gctk_client PUBLIC GCTK_CLIENT)
 
 add_library(gctk_server STATIC ${GCTK_SERVER_SOURCES} ${GCTK_SHARED_SOURCES})
+target_link_libraries(gctk_server PUBLIC tinyxml2::tinyxml2)
 target_include_directories(gctk_server PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/server
         ${CMAKE_CURRENT_LIST_DIR}/shared

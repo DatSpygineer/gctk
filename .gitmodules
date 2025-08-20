@@ -7,3 +7,6 @@
 [submodule "submodules/tini"]
 	path = submodules/tini
 	url = https://github.com/DatSpygineer/tini.git
+[submodule "submodules/tinyxml2"]
+	path = submodules/tinyxml2
+	url = https://github.com/leethomason/tinyxml2.git

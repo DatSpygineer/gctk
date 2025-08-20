@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <ranges>
 #include <vector>
 #include <cstring>
 
@@ -27,26 +28,30 @@ namespace gctk {
 			return s_assets.at(path);
 		}
 
-		for (auto it = s_asset_packs.rbegin(); it != s_asset_packs.rend(); ++it) {
-			if (const auto pack = *it; pack->contains_entry(path)) {
-				auto ext = StringUtil::ToLower(Path(path).extension().string());
+		const auto trimmed_path = StringUtil::Trim(path);
+
+		for (auto& pack : std::ranges::reverse_view(s_asset_packs)) {
+			if (pack->contains_entry(trimmed_path)) {
+				auto ext = StringUtil::ToLower(Path(trimmed_path).extension().string());
 				AssetType type;
 
-				if (ext == ".txt" || ext == ".cfg" || ext == ".ini") {
+				if (ext == ".txt" || ext == ".cfg" || ext == ".ini" || ext == ".glsl") {
 					type = AssetType::PlainText;
-				} else if (ext == ".json") {
-					type = AssetType::JsonData;
+				} else if (ext == ".xml") {
+					type = AssetType::XmlData;
 				} else if (ext == ".lua") {
 					type = AssetType::Script;
 				}
 #ifdef GCTK_CLIENT
-				else if (ext == ".gtex") {
-					type = AssetType::Texture;
+				else if (ext == ".png" || ext == ".tga") {
+					type = AssetType::TextureImage;
+				} else if (ext == ".gtex") {
+					type = AssetType::TextureDef;
 				} else if (ext == ".gmdl") {
 					type = AssetType::Mesh;
 				} else if (ext == ".gani") {
 					type = AssetType::Animation;
-				} else if (ext == ".gshd" || ext == ".glsl") {
+				} else if (ext == ".gshd") {
 					type = AssetType::Shader;
 				} else if (ext == ".gmat") {
 					type = AssetType::Material;
@@ -80,6 +85,65 @@ namespace gctk {
 			}
 		}
 		return nullptr;
+	}
+
+	AssetReader::AssetReader(Asset& asset) : std::istream(&m_buffer), m_buffer(asset) {
+		rdbuf(&m_buffer);
+	}
+
+	AssetReader::AssetReaderBuffer::AssetReaderBuffer(Asset& asset) : m_asset(asset) {
+		setg(
+			static_cast<char*>(m_asset.m_pData),
+			static_cast<char*>(m_asset.m_pData),
+			static_cast<char*>(m_asset.m_pData) + m_asset.m_uSize
+		);
+	}
+
+	std::string AssetReader::read_string(const size_t char_n) {
+		std::string result;
+		result.reserve(char_n);
+		read(result.data(), static_cast<std::streamsize>(char_n));
+		result.shrink_to_fit();
+		return result;
+	}
+
+	std::string AssetReader::read_string() {
+		std::string result;
+		result.reserve(remaining_size());
+		while (!eof()) {
+			const auto c = get();
+			if (c == EOF) {
+				break;
+			}
+			result.push_back(static_cast<char>(c));
+		}
+		result.shrink_to_fit();
+		return result;
+	}
+
+	std::string AssetReader::read_all_to_string() {
+		std::string result;
+		result.reserve(size());
+		read(result.data(), size());
+		result.shrink_to_fit();
+		return result;
+	}
+
+	std::streamsize AssetReader::size() {
+		const auto pos = tellg();
+		seekg(0, std::ios::end);
+		const auto size = tellg();
+		seekg(pos, std::ios::beg);
+
+		return size;
+	}
+
+	std::streamsize AssetReader::remaining_size() {
+		const auto pos = tellg();
+		seekg(0, std::ios::end);
+		const auto size = tellg();
+		seekg(pos, std::ios::beg);
+		return size - pos;
 	}
 
 	AssetPack::~AssetPack() {

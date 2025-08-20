@@ -15,4 +15,4 @@ example/game/cfg/keybinds.cfg
 example/game/cfg/userdata.cfg
 
 # Ignore compiled assets
-example/game/assets.gpkg
+*.gpkg
