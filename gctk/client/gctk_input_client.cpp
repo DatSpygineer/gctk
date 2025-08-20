@@ -60,39 +60,35 @@ namespace gctk {
 		int keycode;
 		float value;
 		int direction;
+		bool changed;
 	};
 
 	struct InputBinding {
 		virtual ~InputBinding() = default;
 
-		[[nodiscard]] virtual float value() const = 0;
-		[[nodiscard]] virtual Input::KeyState keystate() const = 0;
+		[[nodiscard]] virtual float value() = 0;
+		[[nodiscard]] virtual Input::KeyState keystate() = 0;
 		[[nodiscard]] virtual bool is_axis() const = 0;
 	};
 
 	struct ActionBinding final : public InputBinding {
 		std::vector<InputState*> states;
+		Input::KeyState last_state = Input::KeyState::Up;
 
 		explicit ActionBinding(const std::vector<InputState*>& states) : states(states) { }
 		explicit ActionBinding(std::vector<InputState*>&& states) : states(std::move(states)) { }
 
-		[[nodiscard]] float value() const override {
+		[[nodiscard]] float value() override {
 			const auto state = keystate();
 			return state == Input::KeyState::Down || state == Input::KeyState::Pressed ? 1.0f : 0.0f;
 		}
-		[[nodiscard]] Input::KeyState keystate() const override {
-			Input::KeyState last_state = Input::KeyState::Up;
-			for (const auto state : states) {
-				if (last_state == Input::KeyState::Down) {
+		[[nodiscard]] Input::KeyState keystate() override {
+			for (auto& state : states) {
+				if (state->changed) {
+					state->changed = false;
+					last_state = state->keystate;
 					return last_state;
 				}
-
-				auto current_state = state->keystate;
-
-				if (last_state == Input::KeyState::Pressed && current_state != Input::KeyState::Down) {
-					return last_state;
-				}
-				last_state = current_state;
 			}
 			return last_state;
 		}
@@ -109,14 +105,17 @@ namespace gctk {
 		explicit AxisBinding(std::vector<std::pair<InputState*, InputState*>>&& states, const float multiplier = 1.0f) noexcept :
 			states(std::move(states)), multiplier(multiplier) { }
 
-		[[nodiscard]] float value() const override {
-			float value = 0.0f;
-			for (const auto [ negative, positive ] : states) {
-				value += positive->value - negative->value;
+		[[nodiscard]] float value() override {
+			for (auto& [ negative, positive ] : states) {
+				if (negative->changed || positive->changed) {
+					negative->changed = false;
+					positive->changed = false;
+					return (positive->value - negative->value) * multiplier;
+				}
 			}
-			return value * multiplier;
+			return 0.0f;
 		}
-		[[nodiscard]] constexpr Input::KeyState keystate() const override {
+		[[nodiscard]] constexpr Input::KeyState keystate() override {
 			return Input::KeyState::Invalid;
 		}
 		[[nodiscard]] constexpr bool is_axis() const override {
@@ -127,15 +126,18 @@ namespace gctk {
 	static std::unordered_map<std::string, InputState> s_input_map;
 	static std::unordered_map<std::string, InputBinding*> s_input_binds;
 
-	static double s_mouse_x, s_mouse_y;
+	static Vector2D s_mouse;
+	static Vector2D s_mouse_prev;
 	static double s_mousewheel_x = 0, s_mousewheel_y = 0;
 
 	static int StringToKeycode(const std::string& name);
 	static std::string KeycodeToString(int key);
 	static InputType KeycodeToInputType(int key);
 
+	static void UpdateKeyState(InputState& key_state_in, bool is_pressed);
+
 	void Input::Initialize(const Client& client) {
-		glfwGetCursorPos(client.get_window(), &s_mouse_x, &s_mouse_y);
+		glfwGetCursorPos(client.get_window(), &s_mouse.x, &s_mouse.y);
 		glfwSetScrollCallback(client.get_window(), [](GLFWwindow* window, const double xoffset, const double yoffset) {
 			(void)window;
 			s_mousewheel_x = xoffset;
@@ -163,6 +165,102 @@ namespace gctk {
 		}
 	}
 	void Input::Poll() {
+		const auto window = Client::Instance()->get_window();
+		s_mouse_prev = s_mouse;
+
+		glfwGetCursorPos(Client::Instance()->get_window(), &s_mouse.x, &s_mouse.y);
+		if (s_input_map.contains("mouse_x")) {
+			auto& input = s_input_map.at("mouse_x");
+			const auto prev_value = input.value;
+			const auto value = static_cast<float>(s_mouse_prev.x - s_mouse.x);
+			const auto delta = value - prev_value;
+
+			input.value = value;
+
+			const auto pressed = input.direction == 0 ?
+									  delta != 0.0f :
+									  static_cast<int>(Math::Sign(delta)) == input.direction;
+
+			UpdateKeyState(input, pressed);
+		}
+		if (s_input_map.contains("mouse_y")) {
+			auto& input = s_input_map.at("mouse_y");
+			const auto prev_value = input.value;
+			const auto value = static_cast<float>(s_mouse_prev.y - s_mouse.y);
+			const auto delta = value - prev_value;
+
+			input.value = value;
+
+			const auto pressed = input.direction == 0 ?
+									  delta != 0.0f :
+									  static_cast<int>(Math::Sign(delta)) == input.direction;
+
+			UpdateKeyState(input, pressed);
+		}
+
+		if (s_input_map.contains("mwheel_x")) {
+			auto& input = s_input_map.at("mwheel_x");
+			const auto prev_value = input.value;
+			const auto value = s_mousewheel_x;
+			input.value = static_cast<float>(value);
+
+			const auto delta = value - prev_value;
+			const auto pressed = input.direction == 0 ?
+									  delta != 0.0f :
+									  static_cast<int>(Math::Sign(delta)) == input.direction;
+			UpdateKeyState(input, pressed);
+		}
+
+		if (s_input_map.contains("mwheel_y")) {
+			auto& input = s_input_map.at("mwheel_y");
+			const auto prev_value = input.value;
+			const auto value = s_mousewheel_y;
+			input.value = static_cast<float>(value);
+
+			const auto delta = value - prev_value;
+			const auto pressed = input.direction == 0 ?
+									  delta != 0.0f :
+									  static_cast<int>(Math::Sign(delta)) == input.direction;
+			UpdateKeyState(input, pressed);
+		}
+
+		for (int i = 0; i < GLFW_KEY_LAST; ++i) {
+			if (auto str = KeycodeToString(i); s_input_map.contains(str)) {
+				auto& input = s_input_map.at(str);
+				const auto state = glfwGetKey(window, i) != GLFW_RELEASE;
+				input.value = state ? 1.0f : 0.0f;
+				UpdateKeyState(input, state);
+			}
+		}
+
+		GLFWgamepadstate gamepad_state[GLFW_JOYSTICK_LAST + 1];
+		for (int i = 0; i < GLFW_JOYSTICK_LAST + 1; ++i) {
+			glfwGetGamepadState(i, &gamepad_state[i]);
+		}
+
+		for (int i = 0; i < GLFW_GAMEPAD_BUTTON_LAST; ++i) {
+			if (auto str = KeycodeToString(i + GAMEPAD_BUTTONS_ORIGIN); s_input_map.contains(str)) {
+				auto& input = s_input_map.at(str);
+				const auto state = gamepad_state[input.device_id].buttons[i] != GLFW_RELEASE;
+				input.value = state ? 1.0f : 0.0f;
+				UpdateKeyState(input, state);
+			}
+		}
+
+		for (int i = 0; i < GLFW_GAMEPAD_AXIS_LAST; ++i) {
+			if (auto str = KeycodeToString(i + GAMEPAD_AXIS_ORIGIN); s_input_map.contains(str)) {
+				auto& input = s_input_map.at(str);
+				const auto prev_value = input.value;
+				const auto value = gamepad_state[input.device_id].axes[i];
+				input.value = value;
+
+				const auto delta = value - prev_value;
+				const auto pressed = input.direction == 0 ?
+										  delta != 0.0f :
+										  static_cast<int>(Math::Sign(delta)) == input.direction;
+				UpdateKeyState(input, pressed);
+			}
+		}
 	}
 
 	void Input::Dispose() {
@@ -179,7 +277,7 @@ namespace gctk {
 		}
 		return CreateAxis(name, std::move(inputs));
 	}
-	bool CreateAxis(const std::string& name, std::vector<std::pair<std::string, std::string>>&& pairs) {
+	bool Input::CreateAxis(const std::string& name, std::vector<std::pair<std::string, std::string>>&& pairs) {
 		if (s_input_binds.contains(name)) {
 			return false;
 		}
@@ -733,7 +831,7 @@ namespace gctk {
 		}
 	}
 
-	static InputType KeycodeToInputType(int key) {
+	static InputType KeycodeToInputType(const int key) {
 		if (key < MOUSE_BUTTON_ORIGIN) {
 			return InputType::Keyboard;
 		}
@@ -750,6 +848,43 @@ namespace gctk {
 			return InputType::MouseAxis;
 		}
 		return InputType::GamepadAxis;
+	}
+
+	static void UpdateKeyState(InputState& key_state_in, const bool is_pressed) {
+		switch (key_state_in.keystate) {
+			case Input::KeyState::Up: {
+				if (is_pressed) {
+					key_state_in.keystate = Input::KeyState::Pressed;
+					key_state_in.changed = true;
+				}
+			} break;
+			case Input::KeyState::Pressed: {
+				if (is_pressed) {
+					key_state_in.keystate = Input::KeyState::Down;
+				} else {
+					key_state_in.keystate = Input::KeyState::Released;
+				}
+				key_state_in.changed = true;
+			} break;
+			case Input::KeyState::Down: {
+				if (!is_pressed) {
+					key_state_in.keystate = Input::KeyState::Released;
+					key_state_in.changed = true;
+				}
+			} break;
+			case Input::KeyState::Released: {
+				if (is_pressed) {
+					key_state_in.keystate = Input::KeyState::Pressed;
+				} else {
+					key_state_in.keystate = Input::KeyState::Up;
+				}
+				key_state_in.changed = true;
+			} break;
+			case Input::KeyState::Invalid: {
+				key_state_in.keystate = is_pressed ? Input::KeyState::Pressed : Input::KeyState::Released;
+				key_state_in.changed = true;
+			} break;
+		}
 	}
 
 	void _cmd_bind_mult(const std::vector<std::string>& args) {

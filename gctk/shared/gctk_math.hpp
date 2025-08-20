@@ -89,10 +89,21 @@ namespace gctk {
 		[[nodiscard]] constexpr Vector2 normalized() const { return *this / length(); }
 		[[nodiscard]] constexpr std::tuple<float, float> items() const { return std::make_tuple(x, y); }
 
-		static Vector2 Min(const Vector2& a, const Vector2& b);
-		static Vector2 Max(const Vector2& a, const Vector2& b);
-		static Vector2 Clamp(const Vector2& x, const Vector2& min, const Vector2& max);
-		static Vector2 Lerp(const Vector2& x, const Vector2& y, float t);
+		[[nodiscard]] constexpr static Vector2 Min(const Vector2& a, const Vector2& b) {
+			return Vector2 { Math::Min(a.x, b.x), Math::Min(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Vector2 Max(const Vector2& a, const Vector2& b) {
+			return Vector2 { Math::Max(a.x, b.x), Math::Max(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Vector2 Clamp(const Vector2& x, const Vector2& min, const Vector2& max) {
+			return Vector2 { Math::Clamp(x.x, min.x, max.x), Math::Clamp(x.y, min.y, max.y) };
+		}
+		[[nodiscard]] constexpr static Vector2 Lerp(const Vector2& x, const Vector2& y, float t) {
+			return Vector2 {
+				Math::Lerp(x.x, y.x, t),
+				Math::Lerp(x.y, y.y, t)
+			};
+		}
 
 		static const Vector2 UNIT_X;
 		static const Vector2 UNIT_Y;
@@ -170,6 +181,107 @@ namespace gctk {
 		}
 	};
 
+	struct Vector2D {
+		double x, y;
+
+		constexpr Vector2D() : x(0.0), y(0.0) {}
+		constexpr Vector2D(const double x, const double y) : x(x), y(y) {}
+
+		[[nodiscard]] constexpr double length() const { return std::sqrt(x * x + y * y); }
+		[[nodiscard]] constexpr double length_square() const { return x * x + y * y; }
+		[[nodiscard]] inline std::string to_string() const { return std::format("{}, {}", x, y); }
+		[[nodiscard]] constexpr double dot(const Vector2D& other) const { return x * other.x + y * other.y; }
+		[[nodiscard]] constexpr double distance(const Vector2D& other) const { return (other - *this).length(); }
+		[[nodiscard]] constexpr Vector2D normalized() const { return *this / length(); }
+		[[nodiscard]] constexpr std::tuple<double, double> items() const { return std::make_tuple(x, y); }
+
+		[[nodiscard]] constexpr static Vector2D Min(const Vector2D& a, const Vector2D& b) {
+			return Vector2D { Math::Min(a.x, b.x), Math::Min(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Vector2D Max(const Vector2D& a, const Vector2D& b) {
+			return Vector2D { Math::Max(a.x, b.x), Math::Max(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Vector2D Clamp(const Vector2D& x, const Vector2D& min, const Vector2D& max) {
+			return Vector2D { Math::Clamp(x.x, min.x, max.x), Math::Clamp(x.y, min.y, max.y) };
+		}
+		[[nodiscard]] constexpr static Vector2D Lerp(const Vector2D& x, const Vector2D& y, const double t) {
+			return Vector2D {
+				Math::Lerp(x.x, y.x, t),
+				Math::Lerp(x.y, y.y, t)
+			};
+		}
+
+		[[nodiscard]] constexpr Vector2D operator+ (const Vector2D& rhs) const {
+			return Vector2D { x + rhs.x, y + rhs.y };
+		}
+		[[nodiscard]] constexpr Vector2D operator- (const Vector2D& rhs) const {
+			return Vector2D { x - rhs.x, y - rhs.y };
+		}
+		[[nodiscard]] constexpr Vector2D operator* (const Vector2D& rhs) const {
+			return Vector2D { x * rhs.x, y * rhs.y };
+		}
+		[[nodiscard]] constexpr Vector2D operator* (const double rhs) const {
+			return Vector2D { x * rhs, y * rhs };
+		}
+		[[nodiscard]] constexpr Vector2D operator/ (const Vector2D& rhs) const {
+			return Vector2D { x / rhs.x, y / rhs.y };
+		}
+		[[nodiscard]] constexpr Vector2D operator/ (const double rhs) const {
+			return Vector2D { x / rhs, y / rhs };
+		}
+		[[nodiscard]] constexpr Vector2D operator- () const {
+			return Vector2D { -x, -y };
+		}
+		[[nodiscard]] constexpr bool operator== (const Vector2D& rhs) const {
+			return x == rhs.x && y == rhs.y;
+		}
+		[[nodiscard]] constexpr bool operator!= (const Vector2D& rhs) const {
+			return x != rhs.x || y != rhs.y;
+		}
+
+		Vector2D& operator+= (const Vector2D& rhs) {
+			x += rhs.x;
+			y += rhs.y;
+			return *this;
+		}
+		Vector2D& operator-= (const Vector2D& rhs) {
+			x -= rhs.x;
+			y -= rhs.y;
+			return *this;
+		}
+		Vector2D& operator*= (const Vector2D& rhs) {
+			x *= rhs.x;
+			y *= rhs.y;
+			return *this;
+		}
+		Vector2D& operator*= (const double rhs) {
+			x *= rhs;
+			y *= rhs;
+			return *this;
+		}
+		Vector2D& operator/= (const Vector2D& rhs) {
+			x /= rhs.x;
+			y /= rhs.y;
+			return *this;
+		}
+		Vector2D& operator/= (const double rhs) {
+			x /= rhs;
+			y /= rhs;
+			return *this;
+		}
+
+		constexpr double operator[] (const int index) const {
+			if (index == 0) return x;
+			if (index == 1) return y;
+			throw std::out_of_range("Index out of range");
+		}
+		double& operator[] (const int index) {
+			if (index == 0) return x;
+			if (index == 1) return y;
+			throw std::out_of_range("Index out of range");
+		}
+	};
+
 	struct Point {
 		int32_t x, y;
 
@@ -184,9 +296,15 @@ namespace gctk {
 		[[nodiscard]] constexpr Point normalized() const { return *this / static_cast<int32_t>(length()); }
 		[[nodiscard]] constexpr std::tuple<int32_t, int32_t> items() const { return std::make_tuple(x, y); }
 
-		static Point Min(const Point& a, const Point& b);
-		static Point Max(const Point& a, const Point& b);
-		static Point Clamp(const Point& x, const Point& min, const Point& max);
+		[[nodiscard]] constexpr static Point Min(const Point& a, const Point& b) {
+			return Point { Math::Min(a.x, b.x), Math::Min(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Point Max(const Point& a, const Point& b) {
+			return Point { Math::Max(a.x, b.x), Math::Max(a.y, b.y) };
+		}
+		[[nodiscard]] constexpr static Point Clamp(const Point& x, const Point& min, const Point& max) {
+			return Point { Math::Clamp(x.x, min.x, max.x), Math::Clamp(x.y, min.y, max.y) };
+		}
 
 		static const Point UNIT_X;
 		static const Point UNIT_Y;
@@ -496,11 +614,26 @@ namespace gctk {
 			};
 		}
 
-		static Vector3 Min(const Vector3& a, const Vector3& b);
-		static Vector3 Max(const Vector3& a, const Vector3& b);
-		static Vector3 Clamp(const Vector3& x, const Vector3& min, const Vector3& max);
-		static Vector3 Lerp(const Vector3& x, const Vector3& y, float t);
-
+		[[nodiscard]] constexpr static Vector3 Min(const Vector3& a, const Vector3& b) {
+			return Vector3 { Math::Min(a.x, b.x), Math::Min(a.y, b.y), Math::Min(a.z, b.z) };
+		}
+		[[nodiscard]] constexpr static Vector3 Max(const Vector3& a, const Vector3& b) {
+			return Vector3 { Math::Max(a.x, b.x), Math::Max(a.y, b.y), Math::Max(a.z, b.z) };
+		}
+		[[nodiscard]] constexpr static Vector3 Clamp(const Vector3& x, const Vector3& min, const Vector3& max) {
+			return Vector3 {
+				Math::Clamp(x.x, min.x, max.x),
+				Math::Clamp(x.y, min.y, max.y),
+				Math::Clamp(x.z, min.z, max.z)
+			};
+		}
+		[[nodiscard]] constexpr static Vector3 Lerp(const Vector3& x, const Vector3& y, const float t) {
+			return Vector3 {
+				Math::Lerp(x.x, y.x, t),
+				Math::Lerp(x.y, y.y, t),
+				Math::Lerp(x.z, y.z, t)
+			};
+		}
 		static const Vector3 UNIT_X;
 		static const Vector3 UNIT_Y;
 		static const Vector3 UNIT_Z;
@@ -600,10 +733,38 @@ namespace gctk {
 		[[nodiscard]] constexpr Vector4 normalized() const { return *this / length(); }
 		[[nodiscard]] constexpr std::tuple<float, float, float, float> items() const { return std::make_tuple(x, y, z, w); }
 
-		static Vector4 Min(const Vector4& a, const Vector4& b);
-		static Vector4 Max(const Vector4& a, const Vector4& b);
-		static Vector4 Clamp(const Vector4& x, const Vector4& min, const Vector4& max);
-		static Vector4 Lerp(const Vector4& x, const Vector4& y, float t);
+		[[nodiscard]] constexpr static Vector4 Min(const Vector4& a, const Vector4& b) {
+			return Vector4 {
+				Math::Min(a.x, b.x),
+				Math::Min(a.y, b.y),
+				Math::Min(a.z, b.z),
+				Math::Min(a.w, b.w)
+			};
+		}
+		[[nodiscard]] constexpr static Vector4 Max(const Vector4& a, const Vector4& b) {
+			return Vector4 {
+				Math::Max(a.x, b.x),
+				Math::Max(a.y, b.y),
+				Math::Max(a.z, b.z),
+				Math::Max(a.w, b.w)
+			};
+		}
+		[[nodiscard]] constexpr static Vector4 Clamp(const Vector4& x, const Vector4& min, const Vector4& max) {
+			return Vector4 {
+				Math::Clamp(x.x, min.x, max.x),
+				Math::Clamp(x.y, min.y, max.y),
+				Math::Clamp(x.z, min.z, max.z),
+				Math::Clamp(x.w, min.w, max.w)
+			};
+		}
+		[[nodiscard]] constexpr static Vector4 Lerp(const Vector4& x, const Vector4& y, const float t) {
+			return Vector4 {
+				Math::Lerp(x.x, y.x, t),
+				Math::Lerp(x.y, y.y, t),
+				Math::Lerp(x.z, y.z, t),
+				Math::Lerp(x.w, y.w, t)
+			};
+		}
 
 		static const Vector4 UNIT_X;
 		static const Vector4 UNIT_Y;
@@ -1090,6 +1251,8 @@ namespace gctk {
 
 		constexpr Color() : r(0), g(0), b(0), a(1) {}
 		constexpr Color(const float r, const float g, const float b, const float a = 1.0f) : r(r), g(g), b(b), a(a) {}
+		constexpr Color(const Color& other) = default;
+		constexpr Color(Color&& other) noexcept = default;
 
 		[[nodiscard]] constexpr std::tuple<float, float, float, float> items() const { return std::make_tuple(r, g, b, a); }
 		[[nodiscard]] constexpr std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> to_bytes() const {
@@ -1101,11 +1264,11 @@ namespace gctk {
 			);
 		}
 		[[nodiscard]] constexpr uint32_t to_rgba() const {
-			auto [ r, g, b, a ] = to_bytes();
+			const auto [ r, g, b, a ] = to_bytes();
 			return r << 24 | g << 16 | b << 8 | a;
 		}
 		[[nodiscard]] constexpr uint32_t to_argb() const {
-			auto [ r, g, b, a ] = to_bytes();
+			const auto [ r, g, b, a ] = to_bytes();
 			return r << 16 | g << 8 | b | a << 24;
 		}
 
@@ -1133,6 +1296,16 @@ namespace gctk {
 				h /= 6;
 			}
 			return std::make_tuple(h, s, l, a);
+		}
+
+		Color& operator=(const Color& other) = default;
+		Color& operator=(Color&& other) noexcept = default;
+
+		constexpr bool operator==(const Color& other) const {
+			return r == other.r && g == other.g && b == other.b && a == other.a;
+		}
+		constexpr bool operator!=(const Color& other) const {
+			return r != other.r || g != other.g || b != other.b || a != other.a;
 		}
 
 		[[nodiscard]] static constexpr Color FromRgba(uint32_t rgba) {
@@ -1241,7 +1414,7 @@ private:
 	std::string separator = ", ";
 public:
 	template<class ParseContext>
-	constexpr typename ParseContext::iterator parse(ParseContext& ctx) {
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
 		auto it = ctx.begin();
 		separator = "";
 		while (it != ctx.end()) {
@@ -1250,7 +1423,7 @@ public:
 		return it;
 	}
 	template<class FmtContext>
-	typename FmtContext::iterator format(const gctk::Vector2& v, FmtContext& ctx) const {
+	FmtContext::iterator format(const gctk::Vector2& v, FmtContext& ctx) const {
 		return std::format_to(ctx.out(), "{}{}{}", v.x, separator, v.y);
 	}
 };
@@ -1261,7 +1434,7 @@ private:
 	std::string separator = ", ";
 public:
 	template<class ParseContext>
-	constexpr typename ParseContext::iterator parse(ParseContext& ctx) {
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
 		auto it = ctx.begin();
 		separator = "";
 		while (it != ctx.end()) {
@@ -1281,7 +1454,7 @@ private:
 	std::string separator = ", ";
 public:
 	template<class ParseContext>
-	constexpr typename ParseContext::iterator parse(ParseContext& ctx) {
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
 		auto it = ctx.begin();
 		separator = "";
 		while (it != ctx.end()) {
@@ -1290,7 +1463,7 @@ public:
 		return it;
 	}
 	template<class FmtContext>
-	typename FmtContext::iterator format(const gctk::Vector4& v, FmtContext& ctx) const {
+	FmtContext::iterator format(const gctk::Vector4& v, FmtContext& ctx) const {
 		return std::format_to(ctx.out(), "{}{}{}{}{}{}{}", v.x, separator, v.y, separator, v.z, separator, v.w);
 	}
 };
@@ -1301,7 +1474,7 @@ private:
 	std::string separator = ", ";
 public:
 	template<class ParseContext>
-	constexpr typename ParseContext::iterator parse(ParseContext& ctx) {
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
 		auto it = ctx.begin();
 		separator = "";
 		while (it != ctx.end()) {
@@ -1310,7 +1483,7 @@ public:
 		return it;
 	}
 	template<class FmtContext>
-	typename FmtContext::iterator format(const gctk::Matrix4& m, FmtContext& ctx) const {
+	FmtContext::iterator format(const gctk::Matrix4& m, FmtContext& ctx) const {
 		return std::format_to(
 			ctx.out(),
 			"[{}{}{}{}{}{}{}]\n"
@@ -1332,7 +1505,7 @@ private:
 	bool has_prefix = false;
 public:
 	template<class ParseContext>
-	constexpr typename ParseContext::iterator parse(ParseContext& ctx) {
+	constexpr ParseContext::iterator parse(ParseContext& ctx) {
 		auto it = ctx.begin();
 
 		std::string fmt;
@@ -1367,7 +1540,7 @@ public:
 	}
 
 	template<class FmtContext>
-	typename FmtContext::iterator format(const gctk::Color& c, FmtContext& ctx) const {
+	FmtContext::iterator format(const gctk::Color& c, FmtContext& ctx) const {
 		switch (color_format) {
 			case gctk::ColorFormat::Rgb: {
 				std::string prefix;
