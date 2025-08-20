@@ -10,7 +10,7 @@ GCTK_GAME_API void ClientStartup(const int argc, char** argv) {
 	client = new Client(argc, argv, GCTK_GAME_NAME, { "assets.gpkg" });
 	client->set_background_color(Color::CornflowerBlue());
 
-	Input::CreateAction("test", "enter");
+	Input::CreateAction("test", { "enter", "kp_enter", "space" });
 
 	client->init();
 }
