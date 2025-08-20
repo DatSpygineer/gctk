@@ -55,7 +55,7 @@ namespace gctk {
 #define LogErr(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Error,   __FILE__, __LINE__)
 #define LogErrAndPopup(__message, ...) gctk::Log(std::format(__message, ##__VA_ARGS__), gctk::MessageLevel::Error,   __FILE__, __LINE__); gctk::ErrorPopup(__message)
 #define FatalError(__message, ...) { LogErr(__message, ##__VA_ARGS__); gctk::DoCrash(std::format(__message, ##__VA_ARGS__)); }
-#define LogErrThrow(__message, ...) { throw gctk::EngineErrorException(std::format(__message, ##__VA_ARGS__), __FILE__, __LINE__); }
+#define LogErrThrow(__message, ...) { LogErr(__message, ##__VA_ARGS__); throw gctk::EngineErrorException(std::format(__message, ##__VA_ARGS__), __FILE__, __LINE__); }
 #define Assert(__expression, __failure_message, ...) \
 	if (!(__expression)) { AssertLog(#__expression, std::format(__failure_message, ##__VA_ARGS__), false, __FILE__, __LINE__); }
 #define AssertFatal(__expression, __failure_message, ...) \

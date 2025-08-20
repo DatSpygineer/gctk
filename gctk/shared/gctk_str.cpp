@@ -2,6 +2,12 @@
 
 #include <sstream>
 #include <algorithm>
+#include <cstring>
+#include <strings.h>
+
+#ifdef _WIN32
+	#define strcasecmp _stricmp
+#endif
 
 namespace gctk::StringUtil {
 	std::string ToLower(const std::string& str) {
@@ -71,6 +77,14 @@ namespace gctk::StringUtil {
 			oss << str;
 		}
 		return oss.str();
+	}
+
+	bool EqualsNoCase(const std::string& lhs, const std::string& rhs) {
+		return strcasecmp(lhs.c_str(), rhs.c_str()) == 0;
+	}
+
+	bool Equals(const std::string& lhs, const std::string& rhs) {
+		return strcmp(lhs.c_str(), rhs.c_str()) == 0;
 	}
 
 	bool ParseBool(const std::string& str, bool& out) {

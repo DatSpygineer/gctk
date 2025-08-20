@@ -17,6 +17,9 @@ namespace gctk::StringUtil {
 	std::string Join(const std::vector<std::string>& strings, char delimiter);
 	std::string Join(const std::vector<std::string>& strings, const std::string& delimiter);
 
+	bool EqualsNoCase(const std::string& lhs, const std::string& rhs);
+	bool Equals(const std::string& lhs, const std::string& rhs);
+
 	bool ParseBool(const std::string& str, bool& out);
 	template<IntegerType T>
 	bool ParseInt(const std::string& str, T& out, uint8_t base = 10) {
